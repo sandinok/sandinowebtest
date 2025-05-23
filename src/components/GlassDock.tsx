@@ -17,6 +17,7 @@ export const GlassDock = () => {
       label: 'PORTFOLIO',
       color: 'from-blue-500 to-blue-700',
       sound: 'click1',
+      gradient: 'linear-gradient(135deg, #60a5fa, #2563eb)',
     },
     {
       id: 'youtube',
@@ -24,6 +25,7 @@ export const GlassDock = () => {
       label: 'YOUTUBE',
       color: 'from-red-500 to-pink-600',
       sound: 'click2',
+      gradient: 'linear-gradient(135deg, #f87171, #db2777)',
     },
     {
       id: 'animations',
@@ -31,6 +33,7 @@ export const GlassDock = () => {
       label: 'ANIMATIONS',
       color: 'from-teal-500 to-cyan-600',
       sound: 'click3',
+      gradient: 'linear-gradient(135deg, #14b8a6, #0891b2)',
     },
     {
       id: 'inspiration',
@@ -38,6 +41,7 @@ export const GlassDock = () => {
       label: 'INSPIRATION',
       color: 'from-green-500 to-emerald-600',
       sound: 'click4',
+      gradient: 'linear-gradient(135deg, #22c55e, #059669)',
     },
     {
       id: 'about',
@@ -45,6 +49,7 @@ export const GlassDock = () => {
       label: 'ABOUT ME',
       color: 'from-cyan-500 to-blue-600',
       sound: 'click5',
+      gradient: 'linear-gradient(135deg, #06b6d4, #2563eb)',
     },
     {
       id: 'contact',
@@ -52,6 +57,7 @@ export const GlassDock = () => {
       label: 'CONTACT',
       color: 'from-purple-500 to-indigo-600',
       sound: 'click6',
+      gradient: 'linear-gradient(135deg, #a855f7, #4f46e5)',
     },
   ];
 
@@ -65,26 +71,29 @@ export const GlassDock = () => {
       initial={{ opacity: 0, y: 100 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 1, delay: 1 }}
-      className="fixed bottom-1/2 left-1/2 transform -translate-x-1/2 translate-y-1/2 z-40"
+      className="fixed bottom-1/2 left-1/2 transform -translate-x-1/2 translate-y-1/2 z-40 perspective-1000"
     >
-      <div 
-        className="relative p-6 rounded-3xl border border-white/20"
+      <motion.div 
+        className="relative p-8 rounded-3xl border border-white/20 transform-style-3d"
         style={{
           background: `
             linear-gradient(135deg, 
-              rgba(255, 255, 255, 0.1) 0%, 
+              rgba(255, 255, 255, 0.15) 0%, 
               rgba(255, 255, 255, 0.05) 100%
             )
           `,
-          backdropFilter: 'blur(20px) saturate(150%)',
+          backdropFilter: 'blur(20px) saturate(180%)',
           boxShadow: `
-            0 25px 50px -12px rgba(0, 0, 0, 0.4),
+            0 25px 50px -12px rgba(0, 0, 0, 0.5),
             0 0 0 1px rgba(255, 255, 255, 0.1),
-            inset 0 1px 0 rgba(255, 255, 255, 0.2)
+            inset 0 1px 0 rgba(255, 255, 255, 0.3)
           `,
+          transform: 'rotateX(10deg)',
         }}
+        whileHover={{ transform: 'rotateX(0deg)' }}
+        transition={{ duration: 0.5 }}
       >
-        <div className="flex gap-4">
+        <div className="flex gap-6">
           {dockItems.map((item, index) => (
             <motion.div
               key={item.id}
@@ -107,19 +116,20 @@ export const GlassDock = () => {
         
         {/* Reflejo del dock */}
         <div 
-          className="absolute top-full left-6 right-6 h-20 opacity-30 pointer-events-none"
+          className="absolute top-full left-10 right-10 h-28 opacity-40 pointer-events-none"
           style={{
             background: `
               linear-gradient(to bottom,
-                rgba(255, 255, 255, 0.1) 0%,
+                rgba(255, 255, 255, 0.15) 0%,
                 transparent 100%
               )
             `,
             transform: 'scaleY(-1)',
-            filter: 'blur(1px)',
+            filter: 'blur(2px)',
+            borderRadius: '50%',
           }}
         />
-      </div>
+      </motion.div>
     </motion.div>
   );
 };

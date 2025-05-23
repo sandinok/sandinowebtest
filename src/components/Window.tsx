@@ -1,15 +1,17 @@
 
-import React from 'react';
+import React, { useRef } from 'react';
 import { motion } from 'framer-motion';
 import Draggable from 'react-draggable';
 import { X, Minus, Square } from 'lucide-react';
 import { useWindows } from '../context/WindowContext';
+import { Resizable } from 're-resizable';
 
 interface WindowProps {
   window: {
     id: string;
     title: string;
     isMaximized: boolean;
+    isMinimized: boolean;
     position: { x: number; y: number };
     size: { width: number; height: number };
     zIndex: number;
@@ -17,7 +19,8 @@ interface WindowProps {
 }
 
 export const Window: React.FC<WindowProps> = ({ window }) => {
-  const { closeWindow, minimizeWindow, maximizeWindow, bringToFront, updateWindowPosition } = useWindows();
+  const { closeWindow, minimizeWindow, maximizeWindow, bringToFront, updateWindowPosition, updateWindowSize } = useWindows();
+  const nodeRef = useRef(null);
 
   const getWindowContent = (id: string) => {
     const contentMap: { [key: string]: JSX.Element } = {
@@ -114,58 +117,123 @@ export const Window: React.FC<WindowProps> = ({ window }) => {
     return contentMap[id] || <div className="p-6">Contenido no encontrado</div>;
   };
 
+  if (window.isMinimized) {
+    return null;
+  }
+
   return (
     <Draggable
       handle=".window-header"
-      position={window.position}
-      onStop={(e, data) => updateWindowPosition(window.id, { x: data.x, y: data.y })}
+      position={window.isMaximized ? { x: 0, y: 0 } : window.position}
+      onStop={(e, data) => {
+        if (!window.isMaximized) {
+          updateWindowPosition(window.id, { x: data.x, y: data.y });
+        }
+      }}
       disabled={window.isMaximized}
+      nodeRef={nodeRef}
     >
       <motion.div
+        ref={nodeRef}
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.8, opacity: 0 }}
+        exit={{ scale: 0.8, opacity: 0, y: 50 }}
+        transition={{ 
+          type: "spring", 
+          stiffness: 300, 
+          damping: 25 
+        }}
         className="fixed"
         style={{ 
           zIndex: window.zIndex,
-          width: window.isMaximized ? '100vw' : window.size.width,
-          height: window.isMaximized ? '100vh' : window.size.height,
+          width: window.isMaximized ? '100vw' : 'auto',
+          height: window.isMaximized ? '100vh' : 'auto',
           left: window.isMaximized ? 0 : window.position.x,
           top: window.isMaximized ? 0 : window.position.y,
         }}
         onClick={() => bringToFront(window.id)}
       >
-        <div className="bg-white rounded-lg shadow-2xl border border-gray-200 h-full flex flex-col overflow-hidden">
-          {/* Header */}
-          <div className="window-header bg-gray-100 px-4 py-3 flex items-center justify-between border-b cursor-move">
-            <h3 className="font-semibold text-gray-800">{window.title}</h3>
-            <div className="flex gap-2">
-              <button
-                onClick={() => minimizeWindow(window.id)}
-                className="w-3 h-3 bg-yellow-400 rounded-full hover:bg-yellow-500 transition-colors"
+        <Resizable
+          size={window.isMaximized ? 
+            { width: '100%', height: '100%' } : 
+            { width: window.size.width, height: window.size.height }
+          }
+          onResizeStop={(e, direction, ref, d) => {
+            if (!window.isMaximized) {
+              updateWindowSize(window.id, { 
+                width: window.size.width + d.width, 
+                height: window.size.height + d.height 
+              });
+            }
+          }}
+          enable={{
+            top: !window.isMaximized,
+            right: !window.isMaximized,
+            bottom: !window.isMaximized,
+            left: !window.isMaximized,
+            topRight: !window.isMaximized,
+            bottomRight: !window.isMaximized,
+            bottomLeft: !window.isMaximized,
+            topLeft: !window.isMaximized
+          }}
+          className="transform-style-3d"
+          minWidth={300}
+          minHeight={200}
+        >
+          <div className="bg-white rounded-lg shadow-2xl border border-gray-200 h-full flex flex-col overflow-hidden transform-style-3d backface-hidden"
+            style={{
+              boxShadow: `
+                0 10px 25px -5px rgba(0, 0, 0, 0.3),
+                0 10px 10px -5px rgba(0, 0, 0, 0.2),
+                0 0 0 1px rgba(0, 0, 0, 0.05),
+                inset 0 1px 0 0 rgba(255, 255, 255, 0.4)
+              `,
+              transform: 'translateZ(0)'
+            }}
+          >
+            {/* Header */}
+            <div className="window-header bg-gradient-to-r from-gray-50 to-gray-100 px-4 py-3 flex items-center justify-between border-b cursor-move">
+              <motion.h3 
+                className="font-semibold text-gray-800"
+                whileHover={{ x: 3 }}
+                transition={{ type: "spring", stiffness: 300 }}
               >
-                <Minus size={8} className="text-yellow-700 m-auto" />
-              </button>
-              <button
-                onClick={() => maximizeWindow(window.id)}
-                className="w-3 h-3 bg-green-400 rounded-full hover:bg-green-500 transition-colors"
-              >
-                <Square size={8} className="text-green-700 m-auto" />
-              </button>
-              <button
-                onClick={() => closeWindow(window.id)}
-                className="w-3 h-3 bg-red-400 rounded-full hover:bg-red-500 transition-colors"
-              >
-                <X size={8} className="text-red-700 m-auto" />
-              </button>
+                {window.title}
+              </motion.h3>
+              <div className="flex gap-2">
+                <motion.button
+                  onClick={() => minimizeWindow(window.id)}
+                  className="w-3 h-3 bg-yellow-400 rounded-full hover:bg-yellow-500 transition-colors flex items-center justify-center"
+                  whileHover={{ scale: 1.2 }}
+                  whileTap={{ scale: 0.9 }}
+                >
+                  <Minus size={8} className="text-yellow-700" />
+                </motion.button>
+                <motion.button
+                  onClick={() => maximizeWindow(window.id)}
+                  className="w-3 h-3 bg-green-400 rounded-full hover:bg-green-500 transition-colors flex items-center justify-center"
+                  whileHover={{ scale: 1.2 }}
+                  whileTap={{ scale: 0.9 }}
+                >
+                  <Square size={8} className="text-green-700" />
+                </motion.button>
+                <motion.button
+                  onClick={() => closeWindow(window.id)}
+                  className="w-3 h-3 bg-red-400 rounded-full hover:bg-red-500 transition-colors flex items-center justify-center"
+                  whileHover={{ scale: 1.2 }}
+                  whileTap={{ scale: 0.9 }}
+                >
+                  <X size={8} className="text-red-700" />
+                </motion.button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-auto">
+              {getWindowContent(window.id)}
             </div>
           </div>
-
-          {/* Content */}
-          <div className="flex-1 overflow-auto">
-            {getWindowContent(window.id)}
-          </div>
-        </div>
+        </Resizable>
       </motion.div>
     </Draggable>
   );

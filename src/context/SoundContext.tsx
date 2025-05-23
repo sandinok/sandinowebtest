@@ -20,17 +20,43 @@ export const SoundProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     // Crear contexto de audio único para cada sonido
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
     
-    // Diferentes frecuencias para cada botón del dock
-    const frequencies: { [key: string]: number } = {
-      click1: 800,
-      click2: 900,
-      click3: 1000,
-      click4: 1100,
-      click5: 1200,
-      click6: 1300,
+    // Variaciones para cada sonido
+    const soundVariations: { [key: string]: Array<{ frequency: number; type: OscillatorType; duration: number }> } = {
+      click1: [
+        { frequency: 800, type: 'sine', duration: 0.2 },
+        { frequency: 850, type: 'triangle', duration: 0.3 },
+        { frequency: 780, type: 'sine', duration: 0.25 }
+      ],
+      click2: [
+        { frequency: 900, type: 'sine', duration: 0.15 },
+        { frequency: 920, type: 'triangle', duration: 0.2 },
+        { frequency: 880, type: 'sine', duration: 0.25 }
+      ],
+      click3: [
+        { frequency: 1000, type: 'sine', duration: 0.2 },
+        { frequency: 1020, type: 'triangle', duration: 0.15 },
+        { frequency: 980, type: 'sine', duration: 0.25 }
+      ],
+      click4: [
+        { frequency: 1100, type: 'triangle', duration: 0.2 },
+        { frequency: 1150, type: 'sine', duration: 0.15 },
+        { frequency: 1080, type: 'triangle', duration: 0.25 }
+      ],
+      click5: [
+        { frequency: 1200, type: 'sine', duration: 0.15 },
+        { frequency: 1230, type: 'triangle', duration: 0.2 },
+        { frequency: 1180, type: 'sine', duration: 0.25 }
+      ],
+      click6: [
+        { frequency: 1300, type: 'triangle', duration: 0.2 },
+        { frequency: 1320, type: 'sine', duration: 0.15 },
+        { frequency: 1280, type: 'triangle', duration: 0.25 }
+      ],
     };
-
-    const frequency = frequencies[soundId] || 1000;
+    
+    // Seleccionar aleatoriamente una variación del sonido
+    const variations = soundVariations[soundId] || [{ frequency: 1000, type: 'sine', duration: 0.2 }];
+    const variation = variations[Math.floor(Math.random() * variations.length)];
     
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
@@ -38,14 +64,14 @@ export const SoundProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     oscillator.connect(gainNode);
     gainNode.connect(audioContext.destination);
     
-    oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
-    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(variation.frequency, audioContext.currentTime);
+    oscillator.type = variation.type;
     
-    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + variation.duration);
     
     oscillator.start(audioContext.currentTime);
-    oscillator.stop(audioContext.currentTime + 0.3);
+    oscillator.stop(audioContext.currentTime + variation.duration);
   };
 
   return (
