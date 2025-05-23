@@ -1,0 +1,57 @@
+
+import React, { useRef, useEffect } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
+import * as THREE from 'three';
+
+const WaveMesh = () => {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const geometryRef = useRef<THREE.PlaneGeometry>(null);
+
+  useFrame((state) => {
+    if (meshRef.current && geometryRef.current) {
+      const positions = geometryRef.current.attributes.position;
+      const time = state.clock.getElapsedTime();
+
+      for (let i = 0; i < positions.count; i++) {
+        const x = positions.getX(i);
+        const y = positions.getY(i);
+        
+        const waveHeight = Math.sin(x * 0.5 + time * 2) * 0.3 + 
+                          Math.sin(y * 0.3 + time * 1.5) * 0.2;
+        
+        positions.setZ(i, waveHeight);
+      }
+      
+      positions.needsUpdate = true;
+      geometryRef.current.computeVertexNormals();
+    }
+  });
+
+  return (
+    <mesh ref={meshRef} position={[0, -3, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <planeGeometry ref={geometryRef} args={[20, 20, 50, 50]} />
+      <meshStandardMaterial
+        color="#10b981"
+        transparent
+        opacity={0.8}
+        side={THREE.DoubleSide}
+        wireframe={false}
+      />
+    </mesh>
+  );
+};
+
+export const WaveSystem = () => {
+  return (
+    <div className="fixed bottom-0 left-0 right-0 h-64 z-5">
+      <Canvas
+        camera={{ position: [0, 5, 10], fov: 75 }}
+        style={{ background: 'transparent' }}
+      >
+        <ambientLight intensity={0.4} />
+        <directionalLight position={[5, 5, 5]} intensity={0.8} />
+        <WaveMesh />
+      </Canvas>
+    </div>
+  );
+};

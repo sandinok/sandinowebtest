@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -18,6 +19,10 @@ export default {
 			}
 		},
 		extend: {
+			fontFamily: {
+				'dancing-script': ['Dancing Script', 'cursive'],
+				'inter': ['Inter', 'sans-serif'],
+			},
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
@@ -84,13 +89,79 @@ export default {
 					to: {
 						height: '0'
 					}
+				},
+				'fade-in': {
+					'0%': {
+						opacity: '0',
+						transform: 'translateY(10px)'
+					},
+					'100%': {
+						opacity: '1',
+						transform: 'translateY(0)'
+					}
+				},
+				'scale-in': {
+					'0%': {
+						transform: 'scale(0.95)',
+						opacity: '0'
+					},
+					'100%': {
+						transform: 'scale(1)',
+						opacity: '1'
+					}
+				},
+				'float': {
+					'0%, 100%': {
+						transform: 'translateY(0px)'
+					},
+					'50%': {
+						transform: 'translateY(-20px)'
+					}
+				},
+				'glow': {
+					'0%, 100%': {
+						textShadow: '0 0 20px rgba(255, 255, 255, 0.8), 0 0 40px rgba(59, 130, 246, 0.6)'
+					},
+					'50%': {
+						textShadow: '0 0 25px rgba(255, 255, 255, 0.9), 0 0 50px rgba(99, 102, 241, 0.7)'
+					}
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'fade-in': 'fade-in 0.3s ease-out',
+				'scale-in': 'scale-in 0.2s ease-out',
+				'float': 'float 3s ease-in-out infinite',
+				'glow': 'glow 3s ease-in-out infinite',
+			},
+			perspective: {
+				'1000': '1000px',
+				'2000': '2000px',
+			},
+			transformStyle: {
+				'preserve-3d': 'preserve-3d',
 			}
 		}
 	},
-	plugins: [require("tailwindcss-animate")],
+	plugins: [
+		require("tailwindcss-animate"),
+		function({ addUtilities }: any) {
+			const newUtilities = {
+				'.perspective-1000': {
+					perspective: '1000px',
+				},
+				'.perspective-2000': {
+					perspective: '2000px',
+				},
+				'.transform-style-3d': {
+					transformStyle: 'preserve-3d',
+				},
+				'.backface-hidden': {
+					backfaceVisibility: 'hidden',
+				},
+			}
+			addUtilities(newUtilities)
+		}
+	],
 } satisfies Config;
