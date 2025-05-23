@@ -21,9 +21,9 @@ export const DockIcon: React.FC<DockIconProps> = ({
   return (
     <motion.div
       whileHover={{ 
-        scale: 1.15,
+        scale: 1.2,
         rotateY: 15,
-        z: 30,
+        z: 40,
       }}
       whileTap={{ scale: 0.95 }}
       className="relative group cursor-pointer perspective-1000"
@@ -31,47 +31,47 @@ export const DockIcon: React.FC<DockIconProps> = ({
       style={{ transformStyle: 'preserve-3d' }}
     >
       <motion.div
-        className="relative w-18 h-18 rounded-2xl flex items-center justify-center transform-style-3d"
+        className="relative w-16 h-16 rounded-2xl flex items-center justify-center transform-style-3d"
         style={{
           background: gradient,
           boxShadow: `
-            0 10px 25px rgba(0, 0, 0, 0.4),
-            0 0 0 1px rgba(255, 255, 255, 0.2),
-            inset 0 1px 0 rgba(255, 255, 255, 0.3)
+            0 10px 25px rgba(0, 0, 0, 0.5),
+            0 0 0 1px rgba(255, 255, 255, 0.3),
+            inset 0 1px 0 rgba(255, 255, 255, 0.4)
           `,
           transform: 'translateZ(0px)',
           backdropFilter: 'blur(10px)',
         }}
         whileHover={{
           boxShadow: `
-            0 15px 35px rgba(0, 0, 0, 0.5),
-            0 0 25px rgba(255, 255, 255, 0.4),
-            inset 0 1px 0 rgba(255, 255, 255, 0.5)
+            0 15px 35px rgba(0, 0, 0, 0.6),
+            0 0 25px rgba(255, 255, 255, 0.5),
+            inset 0 1px 0 rgba(255, 255, 255, 0.6)
           `,
-          transform: 'translateZ(20px)',
+          transform: 'translateZ(30px)',
         }}
         transition={{ 
           type: "spring", 
-          stiffness: 300, 
-          damping: 20 
+          stiffness: 400, 
+          damping: 25 
         }}
       >
         <Icon 
-          size={32} 
+          size={30} 
           className="text-white drop-shadow-lg"
           style={{ 
-            filter: 'drop-shadow(0 3px 5px rgba(0, 0, 0, 0.4))',
-            transform: 'translateZ(5px)',
+            filter: 'drop-shadow(0 3px 5px rgba(0, 0, 0, 0.5))',
+            transform: 'translateZ(10px)',
           }}
         />
         
-        {/* Efecto de brillo animado */}
+        {/* Efecto de brillo animado mejorado */}
         <motion.div
           className="absolute inset-0 rounded-2xl"
           initial={{ background: 'linear-gradient(45deg, transparent 0%, transparent 100%)' }}
           whileHover={{
             background: [
-              'linear-gradient(45deg, transparent 0%, rgba(255, 255, 255, 0.3) 50%, transparent 100%)',
+              'linear-gradient(45deg, transparent 0%, rgba(255, 255, 255, 0.4) 50%, transparent 100%)',
               'linear-gradient(45deg, transparent 0%, transparent 100%)',
             ],
           }}
@@ -80,7 +80,7 @@ export const DockIcon: React.FC<DockIconProps> = ({
         />
       </motion.div>
       
-      {/* Etiqueta */}
+      {/* Etiqueta mejorada */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         whileHover={{ opacity: 1, y: 0 }}
@@ -90,10 +90,10 @@ export const DockIcon: React.FC<DockIconProps> = ({
         <div 
           className="px-3 py-1.5 text-xs text-white font-semibold rounded-lg"
           style={{
-            background: 'rgba(0, 0, 0, 0.6)',
-            backdropFilter: 'blur(10px)',
-            boxShadow: '0 4px 8px rgba(0, 0, 0, 0.3)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
+            background: 'rgba(20, 20, 40, 0.6)',
+            backdropFilter: 'blur(15px)',
+            boxShadow: '0 5px 10px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
           }}
         >
           {label}

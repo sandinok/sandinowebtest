@@ -66,6 +66,28 @@ export const GlassDock = () => {
     openWindow(item.id, item.label);
   };
 
+  // Custom hover effect for the whole dock
+  const dockVariants = {
+    hover: {
+      scale: 1.03,
+      y: -5,
+      transition: {
+        type: "spring",
+        stiffness: 300,
+        damping: 20
+      }
+    },
+    initial: {
+      scale: 1,
+      y: 0,
+      transition: {
+        type: "spring",
+        stiffness: 300,
+        damping: 20
+      }
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 100 }}
@@ -74,30 +96,33 @@ export const GlassDock = () => {
       className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-40 perspective-1000"
     >
       <motion.div 
-        className="relative p-8 rounded-3xl border border-white/20 transform-style-3d"
+        className="relative p-8 rounded-full border border-white/30 transform-style-3d shadow-2xl"
         style={{
           background: `
             linear-gradient(135deg, 
-              rgba(255, 255, 255, 0.10) 0%, 
-              rgba(255, 255, 255, 0.03) 100%
+              rgba(255, 255, 255, 0.25) 0%, 
+              rgba(255, 255, 255, 0.08) 100%
             )
           `,
-          backdropFilter: 'blur(25px) saturate(180%)',
+          backdropFilter: 'blur(30px) saturate(180%)',
           boxShadow: `
-            0 25px 50px -12px rgba(0, 0, 0, 0.5),
-            0 0 0 1px rgba(255, 255, 255, 0.1),
-            inset 0 1px 0 rgba(255, 255, 255, 0.1)
+            0 25px 50px -12px rgba(0, 0, 0, 0.6),
+            0 0 0 1px rgba(255, 255, 255, 0.15),
+            inset 0 1px 0 rgba(255, 255, 255, 0.2)
           `,
           transform: 'rotateX(20deg) translateZ(10px)',
         }}
         whileHover={{ 
-          transform: 'rotateX(5deg) translateZ(20px)',
+          transform: 'rotateX(10deg) translateZ(20px)',
           boxShadow: `
-            0 25px 50px -12px rgba(0, 0, 0, 0.7),
-            0 0 0 1px rgba(255, 255, 255, 0.2),
-            inset 0 1px 0 rgba(255, 255, 255, 0.2)
+            0 25px 50px -12px rgba(0, 0, 0, 0.8),
+            0 0 0 1px rgba(255, 255, 255, 0.25),
+            inset 0 1px 0 rgba(255, 255, 255, 0.3)
           `,
         }}
+        variants={dockVariants}
+        initial="initial"
+        whileHover="hover"
         transition={{ duration: 0.5 }}
       >
         <div className="flex gap-6">
@@ -110,7 +135,7 @@ export const GlassDock = () => {
                 duration: 0.6,
                 delay: 1.2 + index * 0.1,
                 type: "spring",
-                stiffness: 200,
+                stiffness: 300,
               }}
             >
               <DockIcon
@@ -121,18 +146,18 @@ export const GlassDock = () => {
           ))}
         </div>
         
-        {/* Reflejo del dock */}
+        {/* Reflejo del dock mejorado */}
         <div 
-          className="absolute top-full left-10 right-10 h-28 opacity-40 pointer-events-none"
+          className="absolute top-full left-10 right-10 h-28 opacity-50 pointer-events-none"
           style={{
             background: `
               linear-gradient(to bottom,
-                rgba(255, 255, 255, 0.15) 0%,
+                rgba(255, 255, 255, 0.2) 0%,
                 transparent 100%
               )
             `,
             transform: 'scaleY(-1)',
-            filter: 'blur(2px)',
+            filter: 'blur(3px)',
             borderRadius: '50%',
           }}
         />

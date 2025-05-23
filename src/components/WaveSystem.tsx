@@ -32,16 +32,18 @@ const WaveMesh = () => {
   });
 
   return (
-    <mesh ref={meshRef} position={[0, -2, 0]} rotation={[-Math.PI / 4, 0, 0]}>
+    <mesh ref={meshRef} position={[0, -2, 0]} rotation={[-Math.PI / 6, 0, 0]}>
       <planeGeometry ref={geometryRef} args={[40, 40, 80, 80]} />
       <meshStandardMaterial
         color="#10b981"
         transparent={true}
-        opacity={0.6}
+        opacity={0.75}
         side={THREE.DoubleSide}
         wireframe={false}
-        metalness={0.5}
-        roughness={0.3}
+        metalness={0.2}
+        roughness={0.4}
+        emissive="#065f46"
+        emissiveIntensity={0.3}
       />
     </mesh>
   );
@@ -49,7 +51,7 @@ const WaveMesh = () => {
 
 export const WaveSystem = () => {
   return (
-    <div className="fixed bottom-0 left-0 right-0 h-[50vh] z-10">
+    <div className="fixed bottom-0 left-0 right-0 h-[60vh] z-10">
       <Canvas
         camera={{ position: [0, 5, 15], fov: 60 }}
         style={{ background: 'transparent' }}
@@ -57,6 +59,7 @@ export const WaveSystem = () => {
       >
         <ambientLight intensity={0.6} />
         <directionalLight position={[5, 5, 5]} intensity={1.2} color="#ffffff" />
+        <directionalLight position={[-5, 3, -5]} intensity={0.4} color="#34d399" />
         <WaveMesh />
       </Canvas>
     </div>

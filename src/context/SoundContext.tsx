@@ -1,105 +1,133 @@
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
-interface SoundProviderProps {
-  children: ReactNode;
-}
-
-interface SoundContextProps {
-  playSound: (id: string) => void;
+type SoundContextType = {
+  playSound: (sound: string) => void;
+  stopSound: (sound: string) => void;
+  toggleMute: () => void;
   setVolume: (volume: number) => void;
-  mute: () => void;
-  unmute: () => void;
   isMuted: boolean;
   volume: number;
-  sounds: Record<string, HTMLAudioElement>;
-}
-
-const SoundContext = createContext<SoundContextProps | undefined>(undefined);
-
-export const useSounds = () => {
-  const context = useContext(SoundContext);
-  if (context === undefined) {
-    throw new Error('useSounds must be used within a SoundProvider');
-  }
-  return context;
 };
 
-export const SoundProvider: React.FC<SoundProviderProps> = ({ children }) => {
-  const [sounds, setSounds] = useState<Record<string, HTMLAudioElement>>({});
-  const [isMuted, setIsMuted] = useState(false);
-  const [volume, setVolumeState] = useState(0.5);
+const SoundContext = createContext<SoundContextType>({
+  playSound: () => {},
+  stopSound: () => {},
+  toggleMute: () => {},
+  setVolume: () => {},
+  isMuted: false,
+  volume: 0.5
+});
 
+export const useSounds = () => useContext(SoundContext);
+
+interface SoundProviderProps {
+  children: React.ReactNode;
+}
+
+// Sonidos disponibles
+const SOUNDS = {
+  click1: 'https://assets.mixkit.co/sfx/preview/mixkit-classic-click-1117.mp3',
+  click2: 'https://assets.mixkit.co/sfx/preview/mixkit-select-click-1109.mp3',
+  click3: 'https://assets.mixkit.co/sfx/preview/mixkit-game-click-1114.mp3',
+  click4: 'https://assets.mixkit.co/sfx/preview/mixkit-modern-click-box-check-1120.mp3',
+  click5: 'https://assets.mixkit.co/sfx/preview/mixkit-light-button-2580.mp3',
+  click6: 'https://assets.mixkit.co/sfx/preview/mixkit-interface-hint-notification-911.mp3',
+  minimize: 'https://assets.mixkit.co/sfx/preview/mixkit-software-interface-back-2575.mp3',
+  maximize: 'https://assets.mixkit.co/sfx/preview/mixkit-futuristic-robotic-fast-sweep-171.mp3',
+  close: 'https://assets.mixkit.co/sfx/preview/mixkit-pebbles-click-1128.mp3',
+  background: 'https://www.youtube.com/watch?v=H5v5DJ7Bzq0'
+};
+
+// Pre-cargar los sonidos
+const audioElements: Record<string, HTMLAudioElement> = {};
+
+export const SoundProvider = ({ children }: SoundProviderProps) => {
+  const [isMuted, setIsMuted] = useState<boolean>(false);
+  const [volume, setVolume] = useState<number>(0.5);
+  const [audioLoaded, setAudioLoaded] = useState<boolean>(false);
+
+  // Inicializar los sonidos
   useEffect(() => {
-    const soundMap: Record<string, HTMLAudioElement> = {
-      click1: new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3'),
-      click2: new Audio('https://assets.mixkit.co/active_storage/sfx/2570/2570-preview.mp3'),
-      click3: new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3'),
-      click4: new Audio('https://assets.mixkit.co/active_storage/sfx/2572/2572-preview.mp3'),
-      click5: new Audio('https://assets.mixkit.co/active_storage/sfx/2573/2573-preview.mp3'),
-      click6: new Audio('https://assets.mixkit.co/active_storage/sfx/2574/2574-preview.mp3'),
-      ambient: new Audio('https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8b4fca89d.mp3?filename=ambient-piano-logo-165357.mp3'),
-    };
-
-    // Pre-load all sounds
-    Object.values(soundMap).forEach(audio => {
-      audio.load();
+    // Crear elementos de audio para cada sonido
+    Object.entries(SOUNDS).forEach(([key, url]) => {
+      const audio = new Audio();
       audio.volume = volume;
+      
+      if (key === 'background') {
+        audio.loop = true;
+        audio.src = 'https://commondatastorage.googleapis.com/codeskulptor-assets/sounddogs/soundtrack.mp3';
+        // Intentamos reproducir automáticamente
+        if (!isMuted) {
+          const playPromise = audio.play();
+          if (playPromise !== undefined) {
+            playPromise.catch(error => {
+              console.log("Autoplay prevented: ", error);
+            });
+          }
+        }
+      } else {
+        audio.src = url;
+      }
+      
+      audio.preload = 'auto';
+      audioElements[key] = audio;
     });
-
-    setSounds(soundMap);
-
-    // Set up ambient music
-    soundMap.ambient.loop = true;
-    soundMap.ambient.volume = 0.3;
-
-    // Auto-play ambient music on user interaction
-    const handleFirstInteraction = () => {
-      soundMap.ambient.play().catch(err => console.log('Audio autoplay failed:', err));
-      document.removeEventListener('click', handleFirstInteraction);
-      document.removeEventListener('touchstart', handleFirstInteraction);
-    };
-
-    document.addEventListener('click', handleFirstInteraction);
-    document.addEventListener('touchstart', handleFirstInteraction);
-
+    
+    setAudioLoaded(true);
+    
+    // Limpieza
     return () => {
-      document.removeEventListener('click', handleFirstInteraction);
-      document.removeEventListener('touchstart', handleFirstInteraction);
-      Object.values(soundMap).forEach(audio => audio.pause());
+      Object.values(audioElements).forEach(audio => {
+        audio.pause();
+        audio.src = '';
+      });
     };
   }, []);
 
-  const playSound = (id: string) => {
-    if (sounds[id] && !isMuted) {
-      // Clone the sound to allow for rapid succession
-      const soundClone = sounds[id].cloneNode(true) as HTMLAudioElement;
-      soundClone.volume = volume;
-      soundClone.play();
+  // Actualizar el volumen cuando cambie
+  useEffect(() => {
+    Object.values(audioElements).forEach(audio => {
+      audio.volume = isMuted ? 0 : volume;
+    });
+  }, [volume, isMuted]);
+
+  const playSound = (sound: string) => {
+    if (!audioLoaded || isMuted) return;
+    
+    const audio = audioElements[sound];
+    if (audio) {
+      audio.currentTime = 0;
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(error => {
+          console.log("Sound play prevented: ", error);
+        });
+      }
     }
   };
 
-  const setVolume = (newVolume: number) => {
-    const clampedVolume = Math.max(0, Math.min(1, newVolume));
-    setVolumeState(clampedVolume);
+  const stopSound = (sound: string) => {
+    const audio = audioElements[sound];
+    if (audio) {
+      audio.pause();
+      audio.currentTime = 0;
+    }
+  };
+
+  const toggleMute = () => {
+    setIsMuted(!isMuted);
     
-    // Update volume for all sounds
-    Object.values(sounds).forEach(audio => {
-      audio.volume = audio === sounds.ambient ? clampedVolume * 0.6 : clampedVolume;
-    });
-  };
-
-  const mute = () => {
-    setIsMuted(true);
-    Object.values(sounds).forEach(audio => {
-      audio.muted = true;
-    });
-  };
-
-  const unmute = () => {
-    setIsMuted(false);
-    Object.values(sounds).forEach(audio => {
-      audio.muted = false;
+    Object.values(audioElements).forEach(audio => {
+      audio.volume = !isMuted ? 0 : volume;
+      
+      if (audio === audioElements.background) {
+        if (!isMuted) {
+          audio.pause();
+        } else {
+          audio.play().catch(err => console.log("Play prevented: ", err));
+        }
+      }
     });
   };
 
@@ -107,12 +135,11 @@ export const SoundProvider: React.FC<SoundProviderProps> = ({ children }) => {
     <SoundContext.Provider
       value={{
         playSound,
+        stopSound,
+        toggleMute,
         setVolume,
-        mute,
-        unmute,
         isMuted,
-        volume,
-        sounds
+        volume
       }}
     >
       {children}
