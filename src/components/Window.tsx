@@ -26,18 +26,18 @@ export const Window: React.FC<WindowProps> = ({ window }) => {
     const contentMap: { [key: string]: JSX.Element } = {
       portfolio: (
         <div className="p-6">
-          <h2 className="text-2xl font-bold mb-4 text-gray-800">Mi Portfolio</h2>
+          <h2 className="text-2xl font-bold mb-4 text-white">Mi Portfolio</h2>
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-gradient-to-br from-blue-400 to-purple-500 h-32 rounded-lg flex items-center justify-center text-white font-semibold">
+            <div className="bg-gradient-to-br from-blue-400/80 to-purple-500/80 h-32 rounded-lg flex items-center justify-center text-white font-semibold backdrop-blur-sm">
               Proyecto 1
             </div>
-            <div className="bg-gradient-to-br from-green-400 to-blue-500 h-32 rounded-lg flex items-center justify-center text-white font-semibold">
+            <div className="bg-gradient-to-br from-green-400/80 to-blue-500/80 h-32 rounded-lg flex items-center justify-center text-white font-semibold backdrop-blur-sm">
               Proyecto 2
             </div>
-            <div className="bg-gradient-to-br from-pink-400 to-red-500 h-32 rounded-lg flex items-center justify-center text-white font-semibold">
+            <div className="bg-gradient-to-br from-pink-400/80 to-red-500/80 h-32 rounded-lg flex items-center justify-center text-white font-semibold backdrop-blur-sm">
               Proyecto 3
             </div>
-            <div className="bg-gradient-to-br from-yellow-400 to-orange-500 h-32 rounded-lg flex items-center justify-center text-white font-semibold">
+            <div className="bg-gradient-to-br from-yellow-400/80 to-orange-500/80 h-32 rounded-lg flex items-center justify-center text-white font-semibold backdrop-blur-sm">
               Proyecto 4
             </div>
           </div>
@@ -45,22 +45,22 @@ export const Window: React.FC<WindowProps> = ({ window }) => {
       ),
       youtube: (
         <div className="p-6">
-          <h2 className="text-2xl font-bold mb-4 text-gray-800">Canal de YouTube</h2>
-          <div className="aspect-video bg-gray-200 rounded-lg flex items-center justify-center mb-4">
-            <div className="text-gray-500">Video Preview</div>
+          <h2 className="text-2xl font-bold mb-4 text-white">Canal de YouTube</h2>
+          <div className="aspect-video bg-gray-800/50 rounded-lg flex items-center justify-center mb-4">
+            <div className="text-gray-300">Video Preview</div>
           </div>
-          <p className="text-gray-600">Aquí encontrarás todos mis videos y tutoriales sobre arte digital y creación de contenido.</p>
+          <p className="text-gray-300">Aquí encontrarás todos mis videos y tutoriales sobre arte digital y creación de contenido.</p>
         </div>
       ),
       animations: (
         <div className="p-6">
-          <h2 className="text-2xl font-bold mb-4 text-gray-800">Animaciones</h2>
-          <p className="text-gray-600 mb-4">Explora mis trabajos de animación digital.</p>
+          <h2 className="text-2xl font-bold mb-4 text-white">Animaciones</h2>
+          <p className="text-gray-300 mb-4">Explora mis trabajos de animación digital.</p>
           <div className="grid grid-cols-1 gap-4">
-            <div className="bg-gradient-to-r from-purple-400 to-pink-400 h-24 rounded-lg flex items-center justify-center text-white">
+            <div className="bg-gradient-to-r from-purple-400/70 to-pink-400/70 h-24 rounded-lg flex items-center justify-center text-white backdrop-blur-sm">
               Animación 1
             </div>
-            <div className="bg-gradient-to-r from-blue-400 to-cyan-400 h-24 rounded-lg flex items-center justify-center text-white">
+            <div className="bg-gradient-to-r from-blue-400/70 to-cyan-400/70 h-24 rounded-lg flex items-center justify-center text-white backdrop-blur-sm">
               Animación 2
             </div>
           </div>
@@ -68,45 +68,45 @@ export const Window: React.FC<WindowProps> = ({ window }) => {
       ),
       inspiration: (
         <div className="p-6">
-          <h2 className="text-2xl font-bold mb-4 text-gray-800">Inspiración</h2>
-          <p className="text-gray-600 mb-4">Fuentes de inspiración para mis obras.</p>
+          <h2 className="text-2xl font-bold mb-4 text-white">Inspiración</h2>
+          <p className="text-gray-300 mb-4">Fuentes de inspiración para mis obras.</p>
           <div className="space-y-3">
-            <div className="border-l-4 border-green-500 pl-4">
-              <h3 className="font-semibold">Naturaleza</h3>
-              <p className="text-sm text-gray-600">Los paisajes dominicanos inspiran mis colores</p>
+            <div className="border-l-4 border-green-500/80 pl-4 backdrop-blur-sm bg-green-500/10 p-2 rounded-r-lg">
+              <h3 className="font-semibold text-white">Naturaleza</h3>
+              <p className="text-sm text-gray-300">Los paisajes dominicanos inspiran mis colores</p>
             </div>
-            <div className="border-l-4 border-blue-500 pl-4">
-              <h3 className="font-semibold">Tecnología</h3>
-              <p className="text-sm text-gray-600">La fusión entre lo digital y lo tradicional</p>
+            <div className="border-l-4 border-blue-500/80 pl-4 backdrop-blur-sm bg-blue-500/10 p-2 rounded-r-lg">
+              <h3 className="font-semibold text-white">Tecnología</h3>
+              <p className="text-sm text-gray-300">La fusión entre lo digital y lo tradicional</p>
             </div>
           </div>
         </div>
       ),
       about: (
         <div className="p-6">
-          <h2 className="text-2xl font-bold mb-4 text-gray-800">Sobre Mí</h2>
-          <p className="text-gray-600 mb-4">
+          <h2 className="text-2xl font-bold mb-4 text-white">Sobre Mí</h2>
+          <p className="text-gray-300 mb-4">
             Soy Sandino, un artista digital y creador de contenido de República Dominicana. 
             Me especializo en crear experiencias visuales inmersivas que combinan arte tradicional con tecnología moderna.
           </p>
-          <p className="text-gray-600">
+          <p className="text-gray-300">
             Mi pasión es llevar la creatividad dominicana al mundo digital, inspirando a otros artistas locales.
           </p>
         </div>
       ),
       contact: (
         <div className="p-6">
-          <h2 className="text-2xl font-bold mb-4 text-gray-800">Contacto</h2>
+          <h2 className="text-2xl font-bold mb-4 text-white">Contacto</h2>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-              <input type="email" className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="tu@email.com" />
+              <label className="block text-sm font-medium text-gray-300 mb-1">Email</label>
+              <input type="email" className="w-full px-3 py-2 bg-white/10 border border-white/20 text-white rounded-lg backdrop-blur-sm" placeholder="tu@email.com" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Mensaje</label>
-              <textarea className="w-full px-3 py-2 border border-gray-300 rounded-lg h-24" placeholder="Tu mensaje aquí..."></textarea>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Mensaje</label>
+              <textarea className="w-full px-3 py-2 bg-white/10 border border-white/20 text-white rounded-lg h-24 backdrop-blur-sm" placeholder="Tu mensaje aquí..."></textarea>
             </div>
-            <button className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors">
+            <button className="bg-blue-500/80 text-white px-4 py-2 rounded-lg hover:bg-blue-600/80 transition-colors backdrop-blur-sm">
               Enviar
             </button>
           </div>
@@ -114,7 +114,7 @@ export const Window: React.FC<WindowProps> = ({ window }) => {
       ),
     };
 
-    return contentMap[id] || <div className="p-6">Contenido no encontrado</div>;
+    return contentMap[id] || <div className="p-6 text-white">Contenido no encontrado</div>;
   };
 
   if (window.isMinimized) {
@@ -180,21 +180,26 @@ export const Window: React.FC<WindowProps> = ({ window }) => {
           minWidth={300}
           minHeight={200}
         >
-          <div className="bg-white rounded-lg shadow-2xl border border-gray-200 h-full flex flex-col overflow-hidden transform-style-3d backface-hidden"
+          <div 
+            className="rounded-lg h-full flex flex-col overflow-hidden transform-style-3d backface-hidden"
             style={{
+              background: 'rgba(20, 20, 40, 0.4)',
+              backdropFilter: 'blur(20px) saturate(180%)',
               boxShadow: `
                 0 10px 25px -5px rgba(0, 0, 0, 0.3),
                 0 10px 10px -5px rgba(0, 0, 0, 0.2),
-                0 0 0 1px rgba(0, 0, 0, 0.05),
-                inset 0 1px 0 0 rgba(255, 255, 255, 0.4)
+                0 0 0 1px rgba(255, 255, 255, 0.1),
+                inset 0 1px 0 0 rgba(255, 255, 255, 0.05)
               `,
+              borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+              borderLeft: '1px solid rgba(255, 255, 255, 0.1)',
               transform: 'translateZ(0)'
             }}
           >
             {/* Header */}
-            <div className="window-header bg-gradient-to-r from-gray-50 to-gray-100 px-4 py-3 flex items-center justify-between border-b cursor-move">
+            <div className="window-header px-4 py-3 flex items-center justify-between cursor-move border-b border-white/10 bg-gradient-to-r from-black/20 to-black/10">
               <motion.h3 
-                className="font-semibold text-gray-800"
+                className="font-semibold text-white"
                 whileHover={{ x: 3 }}
                 transition={{ type: "spring", stiffness: 300 }}
               >

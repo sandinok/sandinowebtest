@@ -71,26 +71,33 @@ export const GlassDock = () => {
       initial={{ opacity: 0, y: 100 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 1, delay: 1 }}
-      className="fixed bottom-1/2 left-1/2 transform -translate-x-1/2 translate-y-1/2 z-40 perspective-1000"
+      className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-40 perspective-1000"
     >
       <motion.div 
         className="relative p-8 rounded-3xl border border-white/20 transform-style-3d"
         style={{
           background: `
             linear-gradient(135deg, 
-              rgba(255, 255, 255, 0.15) 0%, 
-              rgba(255, 255, 255, 0.05) 100%
+              rgba(255, 255, 255, 0.10) 0%, 
+              rgba(255, 255, 255, 0.03) 100%
             )
           `,
-          backdropFilter: 'blur(20px) saturate(180%)',
+          backdropFilter: 'blur(25px) saturate(180%)',
           boxShadow: `
             0 25px 50px -12px rgba(0, 0, 0, 0.5),
             0 0 0 1px rgba(255, 255, 255, 0.1),
-            inset 0 1px 0 rgba(255, 255, 255, 0.3)
+            inset 0 1px 0 rgba(255, 255, 255, 0.1)
           `,
-          transform: 'rotateX(10deg)',
+          transform: 'rotateX(20deg) translateZ(10px)',
         }}
-        whileHover={{ transform: 'rotateX(0deg)' }}
+        whileHover={{ 
+          transform: 'rotateX(5deg) translateZ(20px)',
+          boxShadow: `
+            0 25px 50px -12px rgba(0, 0, 0, 0.7),
+            0 0 0 1px rgba(255, 255, 255, 0.2),
+            inset 0 1px 0 rgba(255, 255, 255, 0.2)
+          `,
+        }}
         transition={{ duration: 0.5 }}
       >
         <div className="flex gap-6">

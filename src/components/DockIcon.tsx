@@ -40,6 +40,7 @@ export const DockIcon: React.FC<DockIconProps> = ({
             inset 0 1px 0 rgba(255, 255, 255, 0.3)
           `,
           transform: 'translateZ(0px)',
+          backdropFilter: 'blur(10px)',
         }}
         whileHover={{
           boxShadow: `
@@ -89,9 +90,10 @@ export const DockIcon: React.FC<DockIconProps> = ({
         <div 
           className="px-3 py-1.5 text-xs text-white font-semibold rounded-lg"
           style={{
-            background: 'rgba(0, 0, 0, 0.75)',
+            background: 'rgba(0, 0, 0, 0.6)',
             backdropFilter: 'blur(10px)',
             boxShadow: '0 4px 8px rgba(0, 0, 0, 0.3)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
           }}
         >
           {label}

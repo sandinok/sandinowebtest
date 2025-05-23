@@ -10,7 +10,8 @@ export const SkyBackground = () => {
         className="absolute inset-0 bg-no-repeat bg-cover bg-center"
         style={{
           backgroundImage: 'url("https://images.unsplash.com/photo-1470813740244-df37b8c1edcb?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=3880&q=80")',
-          backgroundSize: 'cover'
+          backgroundSize: 'cover',
+          opacity: 0.9
         }}
       />
       
@@ -19,9 +20,12 @@ export const SkyBackground = () => {
       
       {/* Animated starry layer */}
       <motion.div
-        animate={{ x: [-20, 20, -20] }}
+        animate={{ 
+          x: [-20, 20, -20],
+          opacity: [0.4, 0.5, 0.4]
+        }}
         transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
-        className="absolute inset-0 opacity-50"
+        className="absolute inset-0"
         style={{
           background: `radial-gradient(ellipse 800px 400px at 30% 20%, rgba(59, 130, 246, 0.3) 0%, transparent 70%),
                      radial-gradient(ellipse 600px 300px at 70% 60%, rgba(99, 102, 241, 0.2) 0%, transparent 70%),
@@ -36,8 +40,8 @@ export const SkyBackground = () => {
             key={i}
             initial={{ opacity: 0, scale: 0 }}
             animate={{ 
-              opacity: [0, 1, 0],
-              scale: [0, 1, 0],
+              opacity: [0, Math.random() * 0.7 + 0.3, 0],
+              scale: [0, Math.random() * 0.5 + 0.5, 0],
             }}
             transition={{
               duration: 3 + Math.random() * 4,

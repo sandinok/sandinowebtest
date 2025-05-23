@@ -1,11 +1,8 @@
 
 import React, { useRef } from 'react';
-import { Canvas, useFrame, extend } from '@react-three/fiber';
+import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { OrbitControls } from '@react-three/drei';
-
-// Make Three.js objects available as JSX elements
-extend({ Mesh: THREE.Mesh, PlaneGeometry: THREE.PlaneGeometry, MeshStandardMaterial: THREE.MeshStandardMaterial });
 
 const WaveMesh = () => {
   const meshRef = useRef<THREE.Mesh>(null);
@@ -35,16 +32,16 @@ const WaveMesh = () => {
   });
 
   return (
-    <mesh ref={meshRef} position={[0, 0, 0]} rotation={[-Math.PI / 3, 0, 0]}>
-      <planeGeometry ref={geometryRef} args={[30, 30, 80, 80]} />
+    <mesh ref={meshRef} position={[0, -2, 0]} rotation={[-Math.PI / 4, 0, 0]}>
+      <planeGeometry ref={geometryRef} args={[40, 40, 80, 80]} />
       <meshStandardMaterial
         color="#10b981"
         transparent={true}
-        opacity={0.8}
+        opacity={0.6}
         side={THREE.DoubleSide}
         wireframe={false}
-        metalness={0.3}
-        roughness={0.4}
+        metalness={0.5}
+        roughness={0.3}
       />
     </mesh>
   );
@@ -52,9 +49,9 @@ const WaveMesh = () => {
 
 export const WaveSystem = () => {
   return (
-    <div className="fixed bottom-0 left-0 right-0 h-80 z-10">
+    <div className="fixed bottom-0 left-0 right-0 h-[50vh] z-10">
       <Canvas
-        camera={{ position: [0, 8, 10], fov: 60 }}
+        camera={{ position: [0, 5, 15], fov: 60 }}
         style={{ background: 'transparent' }}
         gl={{ alpha: true, antialias: true }}
       >

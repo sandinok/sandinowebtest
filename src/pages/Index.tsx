@@ -16,7 +16,7 @@ const Index = () => {
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    // Simular tiempo de carga para assets pesados
+    // Simulate loading time for heavy assets
     const timer = setTimeout(() => {
       setIsLoaded(true);
     }, 2000);
@@ -33,25 +33,25 @@ const Index = () => {
               <LoadingScreen key="loading" />
             ) : (
               <div key="main" className="relative min-h-screen">
-                {/* Fondo del cielo */}
+                {/* Sky background */}
                 <SkyBackground />
                 
-                {/* Sistema de partículas multicapa */}
+                {/* Multi-layer particle system */}
                 <ParticleSystem />
                 
-                {/* Título principal */}
+                {/* Main title */}
                 <MainTitle />
                 
-                {/* Dock principal */}
+                {/* Main dock */}
                 <GlassDock />
                 
-                {/* Sistema de olas 3D */}
+                {/* 3D wave system */}
                 <WaveSystem />
                 
-                {/* Gestor de ventanas */}
+                {/* Window manager */}
                 <WindowManager />
                 
-                {/* Reproductor de música automático */}
+                {/* Automatic music player */}
                 <MusicPlayer />
               </div>
             )}
