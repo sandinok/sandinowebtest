@@ -1,7 +1,11 @@
 
-import React, { useRef, useEffect } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import React, { useRef } from 'react';
+import { Canvas, useFrame, extend } from '@react-three/fiber';
 import * as THREE from 'three';
+import { OrbitControls } from '@react-three/drei';
+
+// Make Three.js objects available as JSX elements
+extend({ Mesh: THREE.Mesh, PlaneGeometry: THREE.PlaneGeometry, MeshStandardMaterial: THREE.MeshStandardMaterial });
 
 const WaveMesh = () => {
   const meshRef = useRef<THREE.Mesh>(null);
@@ -32,7 +36,7 @@ const WaveMesh = () => {
       <planeGeometry ref={geometryRef} args={[20, 20, 50, 50]} />
       <meshStandardMaterial
         color="#10b981"
-        transparent
+        transparent={true}
         opacity={0.8}
         side={THREE.DoubleSide}
         wireframe={false}
