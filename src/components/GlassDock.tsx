@@ -123,7 +123,6 @@ export const GlassDock = () => {
         variants={dockVariants}
         initial="initial"
         whileHover="hover"
-        transition={{ duration: 0.5 }}
       >
         <div className="flex gap-6">
           {dockItems.map((item, index) => (
