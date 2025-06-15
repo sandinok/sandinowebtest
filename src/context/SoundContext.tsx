@@ -16,7 +16,7 @@ const SoundContext = createContext<SoundContextType>({
   toggleMute: () => {},
   setVolume: () => {},
   isMuted: false,
-  volume: 0.5
+  volume: 0.3
 });
 
 export const useSounds = () => useContext(SoundContext);
@@ -25,18 +25,17 @@ interface SoundProviderProps {
   children: React.ReactNode;
 }
 
-// Sonidos disponibles
+// Sonidos suaves estilo iOS
 const SOUNDS = {
-  click1: 'https://assets.mixkit.co/sfx/preview/mixkit-classic-click-1117.mp3',
-  click2: 'https://assets.mixkit.co/sfx/preview/mixkit-select-click-1109.mp3',
-  click3: 'https://assets.mixkit.co/sfx/preview/mixkit-game-click-1114.mp3',
-  click4: 'https://assets.mixkit.co/sfx/preview/mixkit-modern-click-box-check-1120.mp3',
-  click5: 'https://assets.mixkit.co/sfx/preview/mixkit-light-button-2580.mp3',
-  click6: 'https://assets.mixkit.co/sfx/preview/mixkit-interface-hint-notification-911.mp3',
-  minimize: 'https://assets.mixkit.co/sfx/preview/mixkit-software-interface-back-2575.mp3',
-  maximize: 'https://assets.mixkit.co/sfx/preview/mixkit-futuristic-robotic-fast-sweep-171.mp3',
-  close: 'https://assets.mixkit.co/sfx/preview/mixkit-pebbles-click-1128.mp3',
-  background: 'https://www.youtube.com/watch?v=H5v5DJ7Bzq0'
+  click1: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav',
+  click2: 'https://www.soundjay.com/misc/sounds/magic-chime-02.wav',
+  click3: 'https://www.soundjay.com/misc/sounds/water-drop-2.wav',
+  click4: 'https://www.soundjay.com/misc/sounds/typewriter-key-1.wav',
+  click5: 'https://www.soundjay.com/misc/sounds/pop-1.wav',
+  click6: 'https://www.soundjay.com/misc/sounds/interface-1.wav',
+  minimize: 'https://www.soundjay.com/misc/sounds/whoosh-1.wav',
+  maximize: 'https://www.soundjay.com/misc/sounds/swoosh-1.wav',
+  close: 'https://www.soundjay.com/misc/sounds/soft-click-1.wav',
 };
 
 // Pre-cargar los sonidos
@@ -44,45 +43,22 @@ const audioElements: Record<string, HTMLAudioElement> = {};
 
 export const SoundProvider = ({ children }: SoundProviderProps) => {
   const [isMuted, setIsMuted] = useState<boolean>(false);
-  const [volume, setVolume] = useState<number>(0.5);
+  const [volume, setVolume] = useState<number>(0.3);
   const [audioLoaded, setAudioLoaded] = useState<boolean>(false);
 
-  // Inicializar los sonidos
+  // Inicializar los sonidos sin autoplay
   useEffect(() => {
-    // Crear elementos de audio para cada sonido
     Object.entries(SOUNDS).forEach(([key, url]) => {
       const audio = new Audio();
       audio.volume = volume;
-      
-      if (key === 'background') {
-        audio.loop = true;
-        audio.src = 'https://commondatastorage.googleapis.com/codeskulptor-assets/sounddogs/soundtrack.mp3';
-        // Intentamos reproducir automáticamente
-        if (!isMuted) {
-          const playPromise = audio.play();
-          if (playPromise !== undefined) {
-            playPromise.catch(error => {
-              console.log("Autoplay prevented: ", error);
-            });
-          }
-        }
-      } else {
-        audio.src = url;
-      }
-      
+      audio.src = url;
       audio.preload = 'auto';
+      
+      // No autoplay, solo preload
       audioElements[key] = audio;
     });
     
     setAudioLoaded(true);
-    
-    // Limpieza
-    return () => {
-      Object.values(audioElements).forEach(audio => {
-        audio.pause();
-        audio.src = '';
-      });
-    };
   }, []);
 
   // Actualizar el volumen cuando cambie
@@ -97,6 +73,7 @@ export const SoundProvider = ({ children }: SoundProviderProps) => {
     
     const audio = audioElements[sound];
     if (audio) {
+      // Reset and play with error handling
       audio.currentTime = 0;
       const playPromise = audio.play();
       if (playPromise !== undefined) {
@@ -117,18 +94,6 @@ export const SoundProvider = ({ children }: SoundProviderProps) => {
 
   const toggleMute = () => {
     setIsMuted(!isMuted);
-    
-    Object.values(audioElements).forEach(audio => {
-      audio.volume = !isMuted ? 0 : volume;
-      
-      if (audio === audioElements.background) {
-        if (!isMuted) {
-          audio.pause();
-        } else {
-          audio.play().catch(err => console.log("Play prevented: ", err));
-        }
-      }
-    });
   };
 
   return (
