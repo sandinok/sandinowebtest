@@ -66,32 +66,6 @@ export const GlassDock = () => {
     openWindow(item.id, item.label);
   };
 
-  // Variantes de animación mejoradas con física realista
-  const dockVariants = {
-    hover: {
-      scale: 1.05,
-      y: -8,
-      rotateX: 5,
-      transition: {
-        type: "spring",
-        stiffness: 400,
-        damping: 25,
-        mass: 0.5
-      }
-    },
-    initial: {
-      scale: 1,
-      y: 0,
-      rotateX: 15,
-      transition: {
-        type: "spring",
-        stiffness: 400,
-        damping: 25,
-        mass: 0.5
-      }
-    }
-  };
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 100, scale: 0.8 }}
@@ -106,59 +80,63 @@ export const GlassDock = () => {
       className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-40 perspective-1000"
     >
       <motion.div 
-        className="relative p-8 rounded-3xl border border-white/20 transform-style-3d"
+        className="relative p-6 rounded-3xl border border-white/30 transform-style-3d overflow-hidden"
         style={{
           background: `
             linear-gradient(135deg, 
-              rgba(255, 255, 255, 0.25) 0%,
-              rgba(255, 255, 255, 0.15) 25%,
-              rgba(255, 255, 255, 0.05) 75%,
-              rgba(255, 255, 255, 0.02) 100%
+              rgba(255, 255, 255, 0.35) 0%,
+              rgba(255, 255, 255, 0.25) 25%,
+              rgba(255, 255, 255, 0.15) 75%,
+              rgba(255, 255, 255, 0.05) 100%
             )
           `,
-          backdropFilter: 'blur(40px) saturate(200%)',
+          backdropFilter: 'blur(60px) saturate(200%)',
           boxShadow: `
-            0 32px 64px -8px rgba(0, 0, 0, 0.4),
-            0 16px 32px -8px rgba(0, 0, 0, 0.2),
-            0 0 0 1px rgba(255, 255, 255, 0.2),
-            inset 0 1px 0 rgba(255, 255, 255, 0.3),
-            inset 0 -1px 0 rgba(0, 0, 0, 0.1)
+            0 40px 80px -16px rgba(0, 0, 0, 0.6),
+            0 20px 40px -8px rgba(0, 0, 0, 0.4),
+            0 0 0 1px rgba(255, 255, 255, 0.3),
+            inset 0 2px 0 rgba(255, 255, 255, 0.4),
+            inset 0 -2px 0 rgba(0, 0, 0, 0.15)
           `,
-          transform: 'rotateX(15deg) translateZ(0)',
+          transform: 'rotateX(8deg) translateZ(0)',
         }}
         whileHover={{ 
-          transform: 'rotateX(8deg) translateZ(10px)',
+          transform: 'rotateX(0deg) translateZ(20px)',
+          y: -12,
           boxShadow: `
-            0 40px 80px -8px rgba(0, 0, 0, 0.5),
-            0 20px 40px -8px rgba(0, 0, 0, 0.3),
-            0 0 0 1px rgba(255, 255, 255, 0.3),
-            inset 0 1px 0 rgba(255, 255, 255, 0.4),
-            inset 0 -1px 0 rgba(0, 0, 0, 0.1)
+            0 60px 120px -16px rgba(0, 0, 0, 0.7),
+            0 30px 60px -8px rgba(0, 0, 0, 0.5),
+            0 0 0 1px rgba(255, 255, 255, 0.4),
+            inset 0 2px 0 rgba(255, 255, 255, 0.5),
+            inset 0 -2px 0 rgba(0, 0, 0, 0.15)
           `,
         }}
-        variants={dockVariants}
-        initial="initial"
-        whileHover="hover"
+        transition={{
+          type: "spring",
+          stiffness: 400,
+          damping: 25
+        }}
       >
-        {/* Efecto de reflejos internos */}
+        {/* Glass reflection layers */}
         <div 
-          className="absolute inset-0 rounded-3xl opacity-30"
+          className="absolute inset-0 rounded-3xl opacity-40"
           style={{
             background: `
-              linear-gradient(45deg, 
+              linear-gradient(135deg, 
                 transparent 0%, 
-                rgba(255, 255, 255, 0.1) 25%, 
-                transparent 50%,
-                rgba(255, 255, 255, 0.05) 75%,
-                transparent 100%
+                rgba(255, 255, 255, 0.3) 20%, 
+                transparent 40%,
+                rgba(255, 255, 255, 0.2) 60%,
+                transparent 80%,
+                rgba(255, 255, 255, 0.1) 100%
               )
             `,
             backgroundSize: '200% 200%',
-            animation: 'shimmer 4s ease-in-out infinite',
+            animation: 'shimmer 6s ease-in-out infinite',
           }}
         />
 
-        <div className="flex gap-6 relative z-10">
+        <div className="flex gap-4 relative z-10">
           {dockItems.map((item, index) => (
             <motion.div
               key={item.id}
@@ -180,35 +158,37 @@ export const GlassDock = () => {
           ))}
         </div>
         
-        {/* Reflejo mejorado del dock */}
+        {/* Enhanced dock reflection */}
         <div 
-          className="absolute top-full left-8 right-8 h-32 opacity-40 pointer-events-none"
+          className="absolute top-full left-6 right-6 h-40 opacity-50 pointer-events-none"
           style={{
             background: `
               linear-gradient(to bottom,
-                rgba(255, 255, 255, 0.15) 0%,
-                rgba(255, 255, 255, 0.05) 40%,
+                rgba(255, 255, 255, 0.25) 0%,
+                rgba(255, 255, 255, 0.15) 20%,
+                rgba(255, 255, 255, 0.08) 40%,
                 transparent 100%
               )
             `,
-            transform: 'scaleY(-0.8) perspective(200px) rotateX(25deg)',
-            filter: 'blur(2px)',
-            borderRadius: '0 0 50% 50%',
+            transform: 'scaleY(-0.9) perspective(300px) rotateX(35deg)',
+            filter: 'blur(3px)',
+            borderRadius: '0 0 60% 60%',
             transformOrigin: 'top center',
           }}
         />
         
-        {/* Efecto de luz ambiental */}
+        {/* Ambient glow effect */}
         <div 
-          className="absolute -inset-4 opacity-20 pointer-events-none"
+          className="absolute -inset-6 opacity-30 pointer-events-none"
           style={{
             background: `
-              radial-gradient(ellipse 200px 100px at center, 
-                rgba(99, 179, 237, 0.3) 0%, 
+              radial-gradient(ellipse 300px 150px at center, 
+                rgba(129, 140, 248, 0.4) 0%, 
+                rgba(99, 102, 241, 0.2) 30%,
                 transparent 70%
               )
             `,
-            filter: 'blur(20px)',
+            filter: 'blur(30px)',
           }}
         />
       </motion.div>

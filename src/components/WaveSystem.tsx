@@ -7,39 +7,23 @@ const WaveMesh = () => {
   const meshRef = useRef<THREE.Mesh>(null);
   const geometryRef = useRef<THREE.PlaneGeometry>(null);
   
-  // Pre-calcular posiciones para mejor rendimiento
-  const waveData = useMemo(() => {
-    const data = [];
-    for (let i = 0; i < 100; i++) {
-      for (let j = 0; j < 100; j++) {
-        data.push({
-          x: (i - 50) * 0.4,
-          y: (j - 50) * 0.4,
-          originalZ: 0
-        });
-      }
-    }
-    return data;
-  }, []);
-
   useFrame((state) => {
     if (meshRef.current && geometryRef.current) {
       const positions = geometryRef.current.attributes.position;
-      const time = state.clock.getElapsedTime() * 0.5;
+      const time = state.clock.getElapsedTime() * 0.8;
 
       for (let i = 0; i < positions.count; i++) {
         const x = positions.getX(i);
         const y = positions.getY(i);
         
-        // Sistema de ondas múltiples más sofisticado
-        const wave1 = Math.sin(x * 0.3 + time * 1.2) * 0.4;
-        const wave2 = Math.sin(y * 0.4 + time * 0.8) * 0.3;
-        const wave3 = Math.sin((x + y) * 0.2 + time * 0.6) * 0.2;
-        const wave4 = Math.sin(Math.sqrt(x * x + y * y) * 0.1 + time) * 0.15;
+        // Ondas más realistas estilo Frutiger Aero
+        const wave1 = Math.sin(x * 0.2 + time * 1.5) * 0.6;
+        const wave2 = Math.sin(y * 0.3 + time * 1.2) * 0.4;
+        const wave3 = Math.sin((x + y) * 0.15 + time * 0.8) * 0.3;
+        const wave4 = Math.sin(Math.sqrt(x * x + y * y) * 0.08 + time * 0.6) * 0.25;
         
-        // Combinación de ondas con atenuación por distancia
         const distance = Math.sqrt(x * x + y * y);
-        const attenuation = Math.max(0, 1 - distance * 0.02);
+        const attenuation = Math.max(0, 1 - distance * 0.015);
         
         const finalHeight = (wave1 + wave2 + wave3 + wave4) * attenuation;
         positions.setZ(i, finalHeight);
@@ -48,92 +32,98 @@ const WaveMesh = () => {
       positions.needsUpdate = true;
       geometryRef.current.computeVertexNormals();
       
-      // Rotación sutil del mesh
-      meshRef.current.rotation.z = Math.sin(time * 0.1) * 0.05;
+      meshRef.current.rotation.z = Math.sin(time * 0.1) * 0.03;
     }
   });
 
   return (
     <group>
-      {/* Mesh principal de ondas */}
+      {/* Main wave mesh - verde aqua estilo Frutiger */}
       <mesh 
         ref={meshRef} 
-        position={[0, -3, 0]} 
-        rotation={[-Math.PI / 5, 0, 0]}
+        position={[0, -4, 0]} 
+        rotation={[-Math.PI / 4, 0, 0]}
         receiveShadow
         castShadow
       >
-        <planeGeometry ref={geometryRef} args={[40, 40, 100, 100]} />
+        <planeGeometry ref={geometryRef} args={[50, 50, 120, 120]} />
         <meshStandardMaterial
-          color="#0ea5e9"
-          transparent={true}
-          opacity={0.8}
-          side={THREE.DoubleSide}
-          wireframe={false}
-          metalness={0.1}
-          roughness={0.2}
-          emissive="#0369a1"
-          emissiveIntensity={0.2}
-          envMapIntensity={0.8}
-        />
-      </mesh>
-      
-      {/* Segundo layer de ondas para profundidad */}
-      <mesh 
-        position={[0, -3.5, 0]} 
-        rotation={[-Math.PI / 4, 0, Math.PI / 6]}
-        receiveShadow
-      >
-        <planeGeometry args={[35, 35, 80, 80]} />
-        <meshStandardMaterial
-          color="#06b6d4"
-          transparent={true}
-          opacity={0.4}
+          color="#10b981"
+          transparent
+          opacity={0.85}
           side={THREE.DoubleSide}
           metalness={0.2}
-          roughness={0.3}
-          emissive="#0891b2"
-          emissiveIntensity={0.1}
+          roughness={0.1}
+          emissive="#059669"
+          emissiveIntensity={0.3}
+          envMapIntensity={1.2}
         />
       </mesh>
       
-      {/* Partículas flotantes */}
-      <ParticleSystem />
+      {/* Secondary wave layer */}
+      <mesh 
+        position={[0, -4.8, 0]} 
+        rotation={[-Math.PI / 3.5, 0, Math.PI / 8]}
+        receiveShadow
+      >
+        <planeGeometry args={[40, 40, 100, 100]} />
+        <meshStandardMaterial
+          color="#14b8a6"
+          transparent
+          opacity={0.6}
+          side={THREE.DoubleSide}
+          metalness={0.3}
+          roughness={0.2}
+          emissive="#0d9488"
+          emissiveIntensity={0.2}
+        />
+      </mesh>
+      
+      {/* Partículas flotantes optimizadas */}
+      <OptimizedParticles />
     </group>
   );
 };
 
-const ParticleSystem = () => {
+const OptimizedParticles = () => {
   const particlesRef = useRef<THREE.Points>(null);
   
-  const particleCount = 200;
-  const positions = useMemo(() => {
+  const particleCount = 150;
+  const { positions, colors } = useMemo(() => {
     const pos = new Float32Array(particleCount * 3);
+    const cols = new Float32Array(particleCount * 3);
+    
     for (let i = 0; i < particleCount; i++) {
-      pos[i * 3] = (Math.random() - 0.5) * 60;
-      pos[i * 3 + 1] = Math.random() * 10 - 2;
-      pos[i * 3 + 2] = (Math.random() - 0.5) * 60;
+      pos[i * 3] = (Math.random() - 0.5) * 80;
+      pos[i * 3 + 1] = Math.random() * 15 - 3;
+      pos[i * 3 + 2] = (Math.random() - 0.5) * 80;
+      
+      // Colores verdes/aqua variados
+      cols[i * 3] = 0.1 + Math.random() * 0.3; // R
+      cols[i * 3 + 1] = 0.7 + Math.random() * 0.3; // G
+      cols[i * 3 + 2] = 0.5 + Math.random() * 0.3; // B
     }
-    return pos;
+    return { positions: pos, colors: cols };
   }, []);
 
   useFrame((state) => {
     if (particlesRef.current) {
       const time = state.clock.getElapsedTime();
-      const positions = particlesRef.current.geometry.attributes.position.array as Float32Array;
+      const positionArray = particlesRef.current.geometry.attributes.position.array as Float32Array;
       
       for (let i = 0; i < particleCount; i++) {
         const i3 = i * 3;
-        positions[i3 + 1] += Math.sin(time + i) * 0.001;
+        positionArray[i3 + 1] += Math.sin(time * 0.8 + i * 0.1) * 0.002 + 0.01;
         
-        // Reset particles que han subido demasiado
-        if (positions[i3 + 1] > 8) {
-          positions[i3 + 1] = -2;
+        if (positionArray[i3 + 1] > 12) {
+          positionArray[i3 + 1] = -3;
+          positionArray[i3] = (Math.random() - 0.5) * 80;
+          positionArray[i3 + 2] = (Math.random() - 0.5) * 80;
         }
       }
       
       particlesRef.current.geometry.attributes.position.needsUpdate = true;
-      particlesRef.current.rotation.y = time * 0.05;
+      particlesRef.current.rotation.y = time * 0.02;
     }
   });
 
@@ -146,14 +136,20 @@ const ParticleSystem = () => {
           array={positions}
           itemSize={3}
         />
+        <bufferAttribute
+          attach="attributes-color"
+          count={particleCount}
+          array={colors}
+          itemSize={3}
+        />
       </bufferGeometry>
       <pointsMaterial
-        size={0.05}
-        color="#60a5fa"
+        size={0.08}
         transparent
-        opacity={0.6}
+        opacity={0.8}
         sizeAttenuation
         blending={THREE.AdditiveBlending}
+        vertexColors
       />
     </points>
   );
@@ -161,9 +157,9 @@ const ParticleSystem = () => {
 
 export const WaveSystem = () => {
   return (
-    <div className="fixed bottom-0 left-0 right-0 h-[70vh] z-10">
+    <div className="fixed bottom-0 left-0 right-0 h-[75vh] z-10 pointer-events-none">
       <Canvas
-        camera={{ position: [0, 8, 20], fov: 60 }}
+        camera={{ position: [0, 12, 25], fov: 65 }}
         style={{ background: 'transparent' }}
         gl={{ 
           alpha: true, 
@@ -172,36 +168,40 @@ export const WaveSystem = () => {
           stencil: false,
           depth: true
         }}
-        shadows
-        performance={{ min: 0.5 }}
+        shadows="soft"
+        performance={{ min: 0.8 }}
       >
-        {/* Iluminación mejorada */}
-        <ambientLight intensity={0.4} color="#e0f2fe" />
+        {/* Iluminación optimizada estilo Frutiger */}
+        <ambientLight intensity={0.6} color="#e0f7fa" />
         <directionalLight 
-          position={[10, 10, 5]} 
-          intensity={1.5} 
+          position={[15, 15, 8]} 
+          intensity={2} 
           color="#ffffff"
           castShadow
           shadow-mapSize-width={2048}
           shadow-mapSize-height={2048}
+          shadow-camera-far={100}
+          shadow-camera-left={-50}
+          shadow-camera-right={50}
+          shadow-camera-top={50}
+          shadow-camera-bottom={-50}
         />
         <directionalLight 
-          position={[-5, 8, -5]} 
-          intensity={0.8} 
-          color="#0ea5e9" 
+          position={[-8, 12, -8]} 
+          intensity={1.2} 
+          color="#10b981" 
         />
         <pointLight 
-          position={[0, 5, 0]} 
-          intensity={0.6} 
-          color="#06b6d4"
-          distance={30}
+          position={[0, 8, 5]} 
+          intensity={1} 
+          color="#14b8a6"
+          distance={40}
+          decay={2}
         />
         
-        {/* Componente principal */}
         <WaveMesh />
         
-        {/* Niebla para profundidad */}
-        <fog attach="fog" args={['#0ea5e9', 15, 50]} />
+        <fog attach="fog" args={['#10b981', 20, 60]} />
       </Canvas>
     </div>
   );

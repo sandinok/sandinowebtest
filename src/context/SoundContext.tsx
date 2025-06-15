@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 type SoundContextType = {
   playSound: (sound: string) => void;
@@ -16,7 +16,7 @@ const SoundContext = createContext<SoundContextType>({
   toggleMute: () => {},
   setVolume: () => {},
   isMuted: false,
-  volume: 0.3
+  volume: 0.2
 });
 
 export const useSounds = () => useContext(SoundContext);
@@ -25,7 +25,7 @@ interface SoundProviderProps {
   children: React.ReactNode;
 }
 
-// Sonidos suaves estilo iOS
+// Sonidos iOS optimizados (URLs de ejemplo - reemplazar con sonidos reales)
 const SOUNDS = {
   click1: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav',
   click2: 'https://www.soundjay.com/misc/sounds/magic-chime-02.wav',
@@ -38,63 +38,101 @@ const SOUNDS = {
   close: 'https://www.soundjay.com/misc/sounds/soft-click-1.wav',
 };
 
-// Pre-cargar los sonidos
-const audioElements: Record<string, HTMLAudioElement> = {};
+// Cache de audio optimizado
+const audioCache = new Map<string, HTMLAudioElement>();
 
 export const SoundProvider = ({ children }: SoundProviderProps) => {
   const [isMuted, setIsMuted] = useState<boolean>(false);
-  const [volume, setVolume] = useState<number>(0.3);
-  const [audioLoaded, setAudioLoaded] = useState<boolean>(false);
+  const [volume, setVolume] = useState<number>(0.2);
+  const [isInitialized, setIsInitialized] = useState<boolean>(false);
 
-  // Inicializar los sonidos sin autoplay
-  useEffect(() => {
+  // Inicializar sonidos de forma lazy
+  const initializeAudio = useCallback(() => {
+    if (isInitialized) return;
+
     Object.entries(SOUNDS).forEach(([key, url]) => {
-      const audio = new Audio();
-      audio.volume = volume;
-      audio.src = url;
-      audio.preload = 'auto';
-      
-      // No autoplay, solo preload
-      audioElements[key] = audio;
+      if (!audioCache.has(key)) {
+        const audio = new Audio();
+        audio.volume = volume;
+        audio.src = url;
+        audio.preload = 'auto';
+        
+        // Configurar para evitar loops
+        audio.loop = false;
+        audio.addEventListener('ended', () => {
+          audio.currentTime = 0;
+        });
+
+        audioCache.set(key, audio);
+      }
     });
     
-    setAudioLoaded(true);
-  }, []);
+    setIsInitialized(true);
+  }, [volume, isInitialized]);
 
-  // Actualizar el volumen cuando cambie
+  // Actualizar volumen de todos los sonidos
   useEffect(() => {
-    Object.values(audioElements).forEach(audio => {
+    audioCache.forEach(audio => {
       audio.volume = isMuted ? 0 : volume;
     });
   }, [volume, isMuted]);
 
-  const playSound = (sound: string) => {
-    if (!audioLoaded || isMuted) return;
+  const playSound = useCallback((sound: string) => {
+    if (!isInitialized) {
+      initializeAudio();
+    }
+
+    if (isMuted) return;
     
-    const audio = audioElements[sound];
-    if (audio) {
-      // Reset and play with error handling
-      audio.currentTime = 0;
+    const audio = audioCache.get(sound);
+    if (audio && audio.readyState >= 2) {
+      // Detener sonido anterior si está reproduciéndose
+      if (!audio.paused) {
+        audio.currentTime = 0;
+      }
+      
+      // Reproducir con manejo de errores
       const playPromise = audio.play();
       if (playPromise !== undefined) {
         playPromise.catch(error => {
-          console.log("Sound play prevented: ", error);
+          console.log("Sound play prevented:", error.message);
         });
       }
     }
-  };
+  }, [isMuted, isInitialized, initializeAudio]);
 
-  const stopSound = (sound: string) => {
-    const audio = audioElements[sound];
+  const stopSound = useCallback((sound: string) => {
+    const audio = audioCache.get(sound);
     if (audio) {
       audio.pause();
       audio.currentTime = 0;
     }
-  };
+  }, []);
 
-  const toggleMute = () => {
-    setIsMuted(!isMuted);
-  };
+  const toggleMute = useCallback(() => {
+    setIsMuted(prev => !prev);
+  }, []);
+
+  const handleSetVolume = useCallback((newVolume: number) => {
+    setVolume(Math.max(0, Math.min(1, newVolume)));
+  }, []);
+
+  // Inicializar en primer click del usuario
+  useEffect(() => {
+    const handleFirstInteraction = () => {
+      initializeAudio();
+      document.removeEventListener('click', handleFirstInteraction);
+      document.removeEventListener('keydown', handleFirstInteraction);
+    };
+
+    document.addEventListener('click', handleFirstInteraction);
+    document.addEventListener('keydown', handleFirstInteraction);
+
+    return () => {
+      document.removeEventListener('click', handleFirstInteraction);
+      document.removeEventListener('keydown', handleFirstInteraction);
+    };
+  }, [initializeAudio]);
 
   return (
     <SoundContext.Provider
@@ -102,7 +140,7 @@ export const SoundProvider = ({ children }: SoundProviderProps) => {
         playSound,
         stopSound,
         toggleMute,
-        setVolume,
+        setVolume: handleSetVolume,
         isMuted,
         volume
       }}
