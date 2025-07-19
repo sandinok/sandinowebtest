@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html lang="en">
   <head>
@@ -10,6 +9,20 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400..700&display=swap" rel="stylesheet">
     <script src="https://cdn.gpteng.co/gptengineer.js" async></script>
+
+    <!-- INICIO DEL CÓDIGO AÑADIDO PARA CORREGIR EL ERROR -->
+    <!-- Este script soluciona el problema de la página en blanco en GitHub Pages -->
+    <script>
+      (function(){
+        const redirect = sessionStorage.redirect;
+        delete sessionStorage.redirect;
+        if (redirect && redirect !== location.href) {
+          history.replaceState(null, null, redirect);
+        }
+      })();
+    </script>
+    <!-- FIN DEL CÓDIGO AÑADIDO -->
+    
   </head>
   <body>
     <div id="root"></div>
