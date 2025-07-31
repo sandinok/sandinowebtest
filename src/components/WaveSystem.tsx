@@ -1,107 +1,78 @@
 // src/components/WaveSystem.tsx
-import React, { useRef, useMemo } from 'react';
+import React, { useRef } from 'react';
 import { Canvas, useFrame, extend } from '@react-three/fiber';
-import { shaderMaterial } from '@react-three/drei';
+import { shaderMaterial, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
-import { useMemoizedWaveShader } from '../hooks/useMemoizedWaveShader'; // Nuevo hook
 
-// Material de onda personalizado con shader para máximo realismo
-const WaveShaderMaterial = shaderMaterial(
+// Material de onda personalizado con shader
+const WaveMaterial = shaderMaterial(
   {
     uTime: 0,
     uColor: new THREE.Color(0x10b981),
     uEmissive: new THREE.Color(0x059669),
-    uSpecular: new THREE.Color(0xffffff),
-    uShininess: 30,
     uWaterTint: new THREE.Color(0x0d9488),
-    uSunDirection: new THREE.Vector3(0.5, 1, 0.7).normalize(),
-    uSunColor: new THREE.Color(0xffffff),
     uFoamColor: new THREE.Color(0xe0f7fa),
+    uSpeed: 0.8,
+    uFrequency: new THREE.Vector2(0.2, 0.3),
+    uAmplitude: new THREE.Vector2(0.4, 0.3),
   },
   // Vertex Shader
   `
     uniform float uTime;
+    uniform float uSpeed;
+    uniform vec2 uFrequency;
+    uniform vec2 uAmplitude;
+    
     varying vec3 vNormal;
     varying vec3 vPosition;
-    varying vec3 vViewDirection;
-    varying vec3 vWorldPosition;
+    varying float vWave;
     
     void main() {
       vNormal = normal;
-      vec4 worldPosition = modelMatrix * vec4(position, 1.0);
-      vWorldPosition = worldPosition.xyz;
       vPosition = position;
       
       // Calcular ondas combinadas
-      float wave1 = sin(position.x * 0.2 + uTime * 1.2) * 0.4;
-      float wave2 = sin(position.z * 0.3 + uTime * 0.9) * 0.3;
-      float wave3 = sin((position.x + position.z) * 0.15 + uTime * 0.6) * 0.2;
-      float wave4 = sin(sqrt(position.x * position.x + position.z * position.z) * 0.08 + uTime * 0.4) * 0.15;
+      float wave1 = sin(position.x * uFrequency.x + uTime * uSpeed * 1.2) * uAmplitude.x;
+      float wave2 = sin(position.z * uFrequency.y + uTime * uSpeed * 0.9) * uAmplitude.y;
+      float wave3 = sin((position.x + position.z) * 0.15 + uTime * uSpeed * 0.6) * 0.2;
+      float wave4 = sin(sqrt(position.x * position.x + position.z * position.z) * 0.08 + uTime * uSpeed * 0.4) * 0.15;
       
       // Atenuación basada en distancia al centro
       float distance = sqrt(position.x * position.x + position.z * position.z);
       float attenuation = max(0.0, 1.0 - distance * 0.02);
       
       float finalHeight = (wave1 + wave2 + wave3 + wave4) * attenuation;
+      vWave = finalHeight;
       
       vec3 newPosition = position + normal * finalHeight;
       gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
-      
-      // Dirección de vista para efectos de reflexión
-      vViewDirection = cameraPosition - worldPosition.xyz;
     }
   `,
   // Fragment Shader
   `
-    uniform float uTime;
     uniform vec3 uColor;
     uniform vec3 uEmissive;
-    uniform vec3 uSpecular;
-    uniform float uShininess;
     uniform vec3 uWaterTint;
-    uniform vec3 uSunDirection;
-    uniform vec3 uSunColor;
     uniform vec3 uFoamColor;
     
     varying vec3 vNormal;
     varying vec3 vPosition;
-    varying vec3 vViewDirection;
-    varying vec3 vWorldPosition;
+    varying float vWave;
     
     void main() {
       // Normales interpoladas
       vec3 normal = normalize(vNormal);
       
-      // Dirección de vista normalizada
-      vec3 viewDirection = normalize(vViewDirection);
-      
-      // Calcular reflexión especular (modelo Phong)
-      vec3 reflectDir = reflect(-uSunDirection, normal);
-      float spec = pow(max(dot(viewDirection, reflectDir), 0.0), uShininess);
-      vec3 specular = uSpecular * spec * uSunColor;
-      
-      // Calcular iluminación difusa
-      float diff = max(dot(normal, uSunDirection), 0.0);
-      vec3 diffuse = uColor * diff * uSunColor;
-      
-      // Color base del agua con tinte
-      vec3 waterColor = mix(uWaterTint, uColor, 0.7);
-      
       // Efecto de profundidad basado en posición Y
-      float depthFactor = smoothstep(-2.0, 0.0, vPosition.y);
-      vec3 depthColor = mix(waterColor * 0.5, waterColor, depthFactor);
+      float depthFactor = smoothstep(-1.0, 0.5, vPosition.y);
+      vec3 depthColor = mix(uWaterTint * 0.5, uColor, depthFactor);
       
       // Efecto de espuma en crestas
-      float foam = smoothstep(0.8, 1.0, normal.y);
+      float foam = smoothstep(0.7, 1.0, normal.y);
       vec3 foamColor = uFoamColor * foam * 0.8;
       
       // Combinar todos los efectos
-      vec3 finalColor = depthColor + diffuse + specular + uEmissive + foamColor;
-      
-      // Atenuación con niebla
-      float fogDistance = length(vWorldPosition);
-      float fog = smoothstep(20.0, 60.0, fogDistance);
-      finalColor = mix(finalColor, uWaterTint, fog);
+      vec3 finalColor = depthColor + uEmissive * 0.5 + foamColor;
       
       gl_FragColor = vec4(finalColor, 0.85);
     }
@@ -109,48 +80,25 @@ const WaveShaderMaterial = shaderMaterial(
 );
 
 // Registrar el material para usarlo en JSX
-extend({ WaveShaderMaterial });
+extend({ WaveMaterial });
 
-// Componente de partículas flotantes ultra optimizadas
+// Componente de partículas flotantes optimizadas
 const FloatingParticles = () => {
   const particlesRef = useRef<THREE.Points>(null);
   
-  // Memoizar posiciones para evitar recálculos
-  const particlesData = useMemo(() => {
-    const count = 60;
-    const positions = new Float32Array(count * 3);
-    const sizes = new Float32Array(count);
-    const colors = new Float32Array(count * 3);
-    
-    for (let i = 0; i < count; i++) {
-      positions[i * 3] = (Math.random() - 0.5) * 40;
-      positions[i * 3 + 1] = Math.random() * 6 - 1;
-      positions[i * 3 + 2] = (Math.random() - 0.5) * 40;
-      
-      sizes[i] = Math.random() * 0.04 + 0.02;
-      
-      // Colores acuáticos
-      colors[i * 3] = 0.2 + Math.random() * 0.3;
-      colors[i * 3 + 1] = 0.7 + Math.random() * 0.3;
-      colors[i * 3 + 2] = 0.8 + Math.random() * 0.2;
-    }
-    
-    return { positions, sizes, colors, count };
-  }, []);
-
   useFrame((state) => {
     if (particlesRef.current) {
       const time = state.clock.getElapsedTime();
       const positions = particlesRef.current.geometry.attributes.position.array as Float32Array;
       
       // Animación optimizada de partículas
-      for (let i = 0; i < particlesData.count; i++) {
-        const i3 = i * 3;
-        positions[i3 + 1] += Math.sin(time * 0.5 + i * 0.1) * 0.005 + 0.005;
+      for (let i = 0; i < positions.length; i += 3) {
+        const idx = i / 3;
+        positions[i + 1] += Math.sin(time * 0.5 + idx * 0.1) * 0.01;
         
         // Resetear partículas que suben demasiado
-        if (positions[i3 + 1] > 5) {
-          positions[i3 + 1] = -1;
+        if (positions[i + 1] > 5) {
+          positions[i + 1] = -1;
         }
       }
       
@@ -164,29 +112,23 @@ const FloatingParticles = () => {
       <bufferGeometry>
         <bufferAttribute
           attach="attributes-position"
-          count={particlesData.count}
-          array={particlesData.positions}
-          itemSize={3}
-        />
-        <bufferAttribute
-          attach="attributes-size"
-          count={particlesData.count}
-          array={particlesData.sizes}
-          itemSize={1}
-        />
-        <bufferAttribute
-          attach="attributes-color"
-          count={particlesData.count}
-          array={particlesData.colors}
+          count={60}
+          array={new Float32Array([
+            ...Array.from({length: 180}, (_, i) => {
+              if (i % 3 === 0) return (Math.random() - 0.5) * 40; // x
+              if (i % 3 === 1) return Math.random() * 6 - 1; // y
+              return (Math.random() - 0.5) * 40; // z
+            })
+          ])}
           itemSize={3}
         />
       </bufferGeometry>
       <pointsMaterial
         size={0.05}
-        sizeAttenuation
+        color="#14b8a6"
         transparent
         opacity={0.7}
-        vertexColors
+        sizeAttenuation
         blending={THREE.AdditiveBlending}
       />
     </points>
@@ -219,7 +161,7 @@ const RealisticWave = () => {
       rotation={[-Math.PI / 2, 0, 0]}
     >
       <planeGeometry args={[60, 60, 120, 120]} />
-      <waveShaderMaterial
+      <waveMaterial
         ref={materialRef}
         uColor={new THREE.Color(0x10b981)}
         uEmissive={new THREE.Color(0x059669)}
@@ -254,7 +196,6 @@ export const WaveSystem = () => {
           position={[15, 20, 10]} 
           intensity={1.8} 
           color="#ffffff"
-          castShadow={false}
         />
         <hemisphereLight 
           intensity={0.3} 
