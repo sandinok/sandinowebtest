@@ -8,24 +8,36 @@ export const ParticleSystem = () => {
   const mouseRef = useRef({ x: 0, y: 0, moving: false });
   const lastTimeRef = useRef<number>(0);
 
-  // Configuración optimizada
+  // Configuración optimizada para belleza y rendimiento
   const config = {
-    particleCount: 60, // Reducido para mejor rendimiento
-    maxTempParticles: 20,
-    mouseRadius: 90,
-    mouseForce: 0.12,
-    baseSpeed: 0.25,
-    sizeRange: { min: 5, max: 12 }
+    particleCount: 50, // Reducido para mejor rendimiento
+    maxTempParticles: 15,
+    mouseRadius: 100,
+    mouseForce: 0.15,
+    baseSpeed: 0.3,
+    sizeRange: { min: 6, max: 14 }
   };
 
-  // Paleta de colores armoniosa y vibrante
+  // Paleta de colores armoniosa y vibrante con gradientes
   const COLORS = {
-    bubble: 'rgba(173, 216, 230, 0.85)', // Celeste brillante
-    leaf: 'rgba(50, 205, 50, 0.85)',     // Verde lima vibrante
-    note: 'rgba(255, 215, 0, 0.85)'      // Dorado brillante
+    bubble: {
+      primary: 'rgba(135, 206, 250, 0.9)', // Light sky blue
+      secondary: 'rgba(173, 216, 230, 0.7)', // Light blue
+      highlight: 'rgba(255, 255, 255, 0.8)'
+    },
+    leaf: {
+      primary: 'rgba(50, 205, 50, 0.9)', // Lime green
+      secondary: 'rgba(34, 139, 34, 0.7)', // Forest green
+      highlight: 'rgba(144, 238, 144, 0.6)'
+    },
+    note: {
+      primary: 'rgba(255, 215, 0, 0.9)', // Gold
+      secondary: 'rgba(218, 165, 32, 0.7)', // Goldenrod
+      highlight: 'rgba(255, 255, 224, 0.8)'
+    }
   };
 
-  // Crear partícula optimizada
+  // Crear partícula optimizada con efectos visuales
   const createParticle = useCallback((layer: number, isTemp = false) => {
     const layerFactor = 1 / layer;
     const types = Object.keys(COLORS);
@@ -35,18 +47,19 @@ export const ParticleSystem = () => {
       x: Math.random() * window.innerWidth,
       y: Math.random() * window.innerHeight,
       vx: (Math.random() - 0.5) * config.baseSpeed * layerFactor,
-      vy: -Math.random() * config.baseSpeed * layerFactor - 0.03 * layerFactor,
+      vy: -Math.random() * config.baseSpeed * layerFactor - 0.04 * layerFactor,
       size: Math.random() * (config.sizeRange.max - config.sizeRange.min) + config.sizeRange.min + 
-            (3 - layer) * 2.5,
+            (3 - layer) * 2,
       type,
-      opacity: isTemp ? 0.9 : Math.random() * 0.3 + 0.4,
+      opacity: isTemp ? 0.95 : Math.random() * 0.3 + 0.4,
       rotation: Math.random() * Math.PI * 2,
-      rotationSpeed: (Math.random() - 0.5) * 0.012 * layerFactor,
+      rotationSpeed: (Math.random() - 0.5) * 0.015 * layerFactor,
       layer,
       life: isTemp ? 0 : undefined,
-      maxLife: isTemp ? 50 : undefined,
-      pulseSpeed: Math.random() * 0.04 + 0.02,
-      pulsePhase: Math.random() * Math.PI * 2
+      maxLife: isTemp ? 60 : undefined,
+      pulseSpeed: Math.random() * 0.05 + 0.02,
+      pulsePhase: Math.random() * Math.PI * 2,
+      colorShift: Math.random() * 0.2
     };
   }, []);
 
@@ -73,72 +86,102 @@ export const ParticleSystem = () => {
     clearTimeout((mouseRef.current as any).timeout);
     (mouseRef.current as any).timeout = setTimeout(() => {
       mouseRef.current.moving = false;
-    }, 80);
+    }, 100);
   }, [createParticle, config.maxTempParticles]);
 
-  // Dibujar formas mejoradas
+  // Dibujar formas mejoradas con efectos visuales
   const drawShape = useCallback((ctx: CanvasRenderingContext2D, type: string, x: number, y: number, 
-                                size: number, opacity: number, pulse: number) => {
+                                size: number, opacity: number, pulse: number, rotation: number, 
+                                colorShift: number) => {
     ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(rotation);
     ctx.globalAlpha = opacity;
     
-    // Aplicar pulso a las partículas brillantes
+    // Aplicar pulso a las partículas
     const currentSize = size * pulse;
     
     switch(type) {
       case 'bubble':
-        // Burbuja con reflejo
-        const gradient = ctx.createRadialGradient(
-          x - currentSize/3, y - currentSize/3, 1,
-          x - currentSize/3, y - currentSize/3, currentSize
+        // Burbuja con gradiente y reflejo
+        const bubbleGradient = ctx.createRadialGradient(
+          -currentSize/3, -currentSize/3, 1,
+          -currentSize/3, -currentSize/3, currentSize
         );
-        gradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
-        gradient.addColorStop(0.2, COLORS.bubble);
-        gradient.addColorStop(1, 'rgba(135, 206, 250, 0.3)');
+        bubbleGradient.addColorStop(0, COLORS.bubble.highlight);
+        bubbleGradient.addColorStop(0.3, COLORS.bubble.primary);
+        bubbleGradient.addColorStop(1, COLORS.bubble.secondary);
         
-        ctx.fillStyle = gradient;
+        ctx.fillStyle = bubbleGradient;
         ctx.beginPath();
-        ctx.arc(x, y, currentSize, 0, Math.PI * 2);
+        ctx.arc(0, 0, currentSize, 0, Math.PI * 2);
         ctx.fill();
         
         // Reflejo brillante
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+        ctx.fillStyle = COLORS.bubble.highlight;
         ctx.beginPath();
-        ctx.arc(x - currentSize/3, y - currentSize/3, currentSize/4, 0, Math.PI * 2);
+        ctx.arc(-currentSize/3, -currentSize/3, currentSize/4, 0, Math.PI * 2);
         ctx.fill();
         break;
         
       case 'leaf':
-        // Hoja estilizada
-        ctx.fillStyle = COLORS.leaf;
+        // Hoja con forma orgánica y venas
+        ctx.fillStyle = COLORS.leaf.primary;
         ctx.beginPath();
-        ctx.ellipse(x, y, currentSize * 0.9, currentSize * 0.7, 
-                   Math.sin(Date.now() * 0.0005) * 0.3, 0, Math.PI * 2);
+        
+        // Forma de hoja más realista
+        ctx.moveTo(0, -currentSize);
+        ctx.bezierCurveTo(
+          currentSize * 0.8, -currentSize * 0.6,
+          currentSize * 0.8, currentSize * 0.6,
+          0, currentSize
+        );
+        ctx.bezierCurveTo(
+          -currentSize * 0.8, currentSize * 0.6,
+          -currentSize * 0.8, -currentSize * 0.6,
+          0, -currentSize
+        );
+        ctx.closePath();
         ctx.fill();
         
         // Venas de la hoja
-        ctx.strokeStyle = 'rgba(34, 139, 34, 0.4)';
+        ctx.strokeStyle = COLORS.leaf.highlight;
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.moveTo(x, y - currentSize * 0.6);
-        ctx.lineTo(x, y + currentSize * 0.6);
+        ctx.moveTo(0, -currentSize * 0.8);
+        ctx.lineTo(0, currentSize * 0.8);
+        ctx.moveTo(-currentSize * 0.4, -currentSize * 0.3);
+        ctx.lineTo(currentSize * 0.4, -currentSize * 0.3);
+        ctx.moveTo(-currentSize * 0.4, currentSize * 0.3);
+        ctx.lineTo(currentSize * 0.4, currentSize * 0.3);
         ctx.stroke();
         break;
         
       case 'note':
-        // Nota musical estilizada
-        ctx.fillStyle = COLORS.note;
+        // Nota musical con diseño mejorado
+        const noteGradient = ctx.createLinearGradient(
+          -currentSize/2, -currentSize, 
+          currentSize/2, currentSize
+        );
+        noteGradient.addColorStop(0, COLORS.note.primary);
+        noteGradient.addColorStop(1, COLORS.note.secondary);
+        
+        ctx.fillStyle = noteGradient;
         ctx.beginPath();
-        ctx.ellipse(x, y, currentSize * 0.7, currentSize, 0, 0, Math.PI * 2);
+        
+        // Cuerpo de la nota musical
+        ctx.ellipse(0, 0, currentSize * 0.6, currentSize, 0, 0, Math.PI * 2);
         ctx.fill();
         
-        // Línea de la nota
-        ctx.strokeStyle = 'rgba(139, 69, 19, 0.7)';
-        ctx.lineWidth = 1.5;
+        // Palo de la nota
+        ctx.fillStyle = COLORS.note.secondary;
+        ctx.fillRect(currentSize * 0.4, -currentSize * 0.5, 2, currentSize * 1.5);
+        
+        // Círculo en la nota
+        ctx.fillStyle = COLORS.note.highlight;
         ctx.beginPath();
-        ctx.moveTo(x + currentSize * 0.5, y - currentSize * 0.3);
-        ctx.lineTo(x + currentSize * 0.5, y + currentSize * 0.7);
-        ctx.stroke();
+        ctx.arc(currentSize * 0.4, -currentSize * 0.3, 3, 0, Math.PI * 2);
+        ctx.fill();
         break;
     }
     
@@ -161,7 +204,7 @@ export const ParticleSystem = () => {
           continue;
         }
         // Desvanecer partículas temporales
-        p.opacity = 0.9 * (1 - p.life / p.maxLife!);
+        p.opacity = 0.95 * (1 - p.life / p.maxLife!);
       }
       
       // Aplicar física con delta time
@@ -169,7 +212,7 @@ export const ParticleSystem = () => {
       p.y += p.vy * deltaTime;
       p.rotation += p.rotationSpeed * deltaTime;
       
-      // Efecto de pulso para partículas brillantes
+      // Efecto de pulso para partículas
       p.pulsePhase += p.pulseSpeed * deltaTime;
       
       // Interacción con mouse
@@ -181,30 +224,30 @@ export const ParticleSystem = () => {
         if (distSq < config.mouseRadius * config.mouseRadius) {
           const dist = Math.sqrt(distSq);
           const force = config.mouseForce * (1 - dist / config.mouseRadius);
-          p.vx += -dx * force / dist * deltaTime * 0.7;
-          p.vy += -dy * force / dist * deltaTime * 0.7;
+          p.vx += -dx * force / dist * deltaTime * 0.8;
+          p.vy += -dy * force / dist * deltaTime * 0.8;
         }
       }
       
       // Comportamiento específico por tipo
       switch (p.type) {
         case 'bubble':
-          p.vy -= 0.0018 / p.layer * deltaTime;
-          p.vx += Math.sin(Date.now() * 0.0004 + i) * 0.0015 * deltaTime;
+          p.vy -= 0.002 / p.layer * deltaTime;
+          p.vx += Math.sin(Date.now() * 0.0005 + i) * 0.002 * deltaTime;
           break;
         case 'leaf':
-          p.vx += Math.sin(Date.now() * 0.0003 + i) * 0.007 * deltaTime;
-          p.vy += 0.0012 / p.layer * deltaTime;
-          p.rotationSpeed = Math.sin(Date.now() * 0.0002 + i) * 0.006 * deltaTime;
+          p.vx += Math.sin(Date.now() * 0.0004 + i) * 0.008 * deltaTime;
+          p.vy += 0.0015 / p.layer * deltaTime;
+          p.rotationSpeed = Math.sin(Date.now() * 0.0003 + i) * 0.007 * deltaTime;
           break;
         case 'note':
-          p.vx = Math.sin(Date.now() * 0.0005 + i) * 0.09 / p.layer * deltaTime;
-          p.vy -= 0.0012 / p.layer * deltaTime;
+          p.vx = Math.sin(Date.now() * 0.0006 + i) * 0.1 / p.layer * deltaTime;
+          p.vy -= 0.0015 / p.layer * deltaTime;
           break;
       }
       
       // Limitar velocidad
-      const maxSpeed = 1.2 / p.layer;
+      const maxSpeed = 1.5 / p.layer;
       const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
       if (speed > maxSpeed) {
         p.vx = (p.vx / speed) * maxSpeed;
@@ -212,7 +255,7 @@ export const ParticleSystem = () => {
       }
       
       // Resetear partículas fuera de pantalla
-      const margin = 40;
+      const margin = 50;
       if (p.y < -margin) {
         p.y = canvas.height + margin;
         p.x = Math.random() * canvas.width;
@@ -241,7 +284,7 @@ export const ParticleSystem = () => {
     lastTimeRef.current = time;
     
     // Limpiar con efecto de desvanecimiento sutil
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.04)';
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
     // Actualizar y dibujar partículas
@@ -249,7 +292,7 @@ export const ParticleSystem = () => {
     
     particlesRef.current.forEach(p => {
       const pulse = 0.9 + Math.sin(p.pulsePhase) * 0.1;
-      drawShape(ctx, p.type, p.x, p.y, p.size, p.opacity, pulse);
+      drawShape(ctx, p.type, p.x, p.y, p.size, p.opacity, pulse, p.rotation, p.colorShift);
     });
     
     animationRef.current = requestAnimationFrame(animate);
