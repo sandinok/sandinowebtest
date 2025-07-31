@@ -87,6 +87,7 @@ const WaveMesh = () => {
         const x = positions.getX(i);
         const y = positions.getY(i);
         
+        // Ondas combinadas para efecto realista
         const wave1 = Math.sin(x * 0.2 + time * 1.5) * 0.6;
         const wave2 = Math.sin(y * 0.3 + time * 1.2) * 0.4;
         const wave3 = Math.sin((x + y) * 0.15 + time * 0.8) * 0.3;
