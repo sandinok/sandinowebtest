@@ -1,16 +1,30 @@
-
-import React from 'react';
-import { motion } from 'framer-motion';
-import { DockIcon } from './DockIcon';
+// src/components/GlassDock.tsx
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Palette, Youtube, Play, Lightbulb, User, Mail } from 'lucide-react';
 import { useSounds } from '../context/SoundContext';
 import { useWindows } from '../context/WindowContext';
 
+interface DockItem {
+  id: string;
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  color: string;
+  sound: string;
+  gradient: string;
+}
+
 export const GlassDock = () => {
   const { playSound } = useSounds();
   const { openWindow } = useWindows();
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
 
-  const dockItems = [
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  const dockItems: DockItem[] = [
     {
       id: 'portfolio',
       icon: Palette,
@@ -61,137 +75,158 @@ export const GlassDock = () => {
     },
   ];
 
-  const handleIconClick = (item: any) => {
+  const handleIconClick = (item: DockItem) => {
     playSound(item.sound);
     openWindow(item.id, item.label);
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 100, scale: 0.8 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ 
-        duration: 1.2, 
-        delay: 1,
-        type: "spring",
-        stiffness: 200,
-        damping: 20
-      }}
-      className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-40 perspective-1000"
-    >
-      <motion.div 
-        className="relative p-6 rounded-3xl border border-white/30 transform-style-3d overflow-hidden"
-        style={{
-          background: `
-            linear-gradient(135deg, 
-              rgba(255, 255, 255, 0.35) 0%,
-              rgba(255, 255, 255, 0.25) 25%,
-              rgba(255, 255, 255, 0.15) 75%,
-              rgba(255, 255, 255, 0.05) 100%
-            )
-          `,
-          backdropFilter: 'blur(60px) saturate(200%)',
-          boxShadow: `
-            0 40px 80px -16px rgba(0, 0, 0, 0.6),
-            0 20px 40px -8px rgba(0, 0, 0, 0.4),
-            0 0 0 1px rgba(255, 255, 255, 0.3),
-            inset 0 2px 0 rgba(255, 255, 255, 0.4),
-            inset 0 -2px 0 rgba(0, 0, 0, 0.15)
-          `,
-          transform: 'rotateX(8deg) translateZ(0)',
-        }}
-        whileHover={{ 
-          transform: 'rotateX(0deg) translateZ(20px)',
-          y: -12,
-          boxShadow: `
-            0 60px 120px -16px rgba(0, 0, 0, 0.7),
-            0 30px 60px -8px rgba(0, 0, 0, 0.5),
-            0 0 0 1px rgba(255, 255, 255, 0.4),
-            inset 0 2px 0 rgba(255, 255, 255, 0.5),
-            inset 0 -2px 0 rgba(0, 0, 0, 0.15)
-          `,
-        }}
-        transition={{
-          type: "spring",
-          stiffness: 400,
-          damping: 25
-        }}
-      >
-        {/* Glass reflection layers */}
-        <div 
-          className="absolute inset-0 rounded-3xl opacity-40"
-          style={{
-            background: `
-              linear-gradient(135deg, 
-                transparent 0%, 
-                rgba(255, 255, 255, 0.3) 20%, 
-                transparent 40%,
-                rgba(255, 255, 255, 0.2) 60%,
-                transparent 80%,
-                rgba(255, 255, 255, 0.1) 100%
-              )
-            `,
-            backgroundSize: '200% 200%',
-            animation: 'shimmer 6s ease-in-out infinite',
+    <AnimatePresence>
+      {isMounted && (
+        <motion.div
+          initial={{ opacity: 0, y: 100 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 100 }}
+          transition={{ 
+            duration: 0.8,
+            type: "spring",
+            stiffness: 150,
+            damping: 25
           }}
-        />
+          className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50"
+        >
+          <div className="relative">
+            {/* Reflejo del dock */}
+            <div className="absolute top-full left-0 right-0 h-20 overflow-hidden">
+              <div 
+                className="w-full h-20 rounded-[2.5rem] opacity-30"
+                style={{
+                  background: 'linear-gradient(to bottom, rgba(255,255,255,0.3), transparent)',
+                  transform: 'scaleY(-1) translateY(2px)',
+                  filter: 'blur(6px)',
+                  maskImage: 'linear-gradient(to bottom, black 30%, transparent)'
+                }}
+              />
+            </div>
 
-        <div className="flex gap-4 relative z-10">
-          {dockItems.map((item, index) => (
-            <motion.div
-              key={item.id}
-              initial={{ opacity: 0, scale: 0.3, y: 50 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              transition={{ 
-                duration: 0.8,
-                delay: 1.2 + index * 0.1,
+            {/* Contenedor principal del dock */}
+            <motion.div 
+              className="relative px-6 py-5 rounded-[2.5rem] border border-white/20 backdrop-blur-3xl"
+              style={{
+                background: `
+                  radial-gradient(80% 70% at 50% 0%, 
+                    rgba(255, 255, 255, 0.4) 0%, 
+                    rgba(255, 255, 255, 0.2) 50%, 
+                    rgba(255, 255, 255, 0.1) 100%
+                  ),
+                  linear-gradient(135deg, 
+                    rgba(255, 255, 255, 0.15) 0%, 
+                    rgba(255, 255, 255, 0.05) 100%
+                  )`,
+                boxShadow: `
+                  0 25px 50px -12px rgba(0, 0, 0, 0.25),
+                  inset 0 0 0 1px rgba(255, 255, 255, 0.2),
+                  inset 0 8px 12px -4px rgba(255, 255, 255, 0.3),
+                  inset 0 -8px 12px -4px rgba(0, 0, 0, 0.1)
+                `,
+              }}
+              whileHover={{ 
+                y: -8,
+              }}
+              transition={{
                 type: "spring",
                 stiffness: 300,
-                damping: 20
+                damping: 25
               }}
             >
-              <DockIcon
-                {...item}
-                onClick={() => handleIconClick(item)}
+              {/* Efecto de brillo */}
+              <div 
+                className="absolute inset-0 rounded-[2.5rem] opacity-60 pointer-events-none"
+                style={{
+                  background: `
+                    radial-gradient(
+                      60% 60% at 50% 0%, 
+                      rgba(255, 255, 255, 0.8) 0%, 
+                      transparent 100%
+                    )`,
+                  filter: 'blur(2px)'
+                }}
               />
+
+              <div className="flex items-end gap-3 relative z-10">
+                {dockItems.map((item, index) => (
+                  <motion.div
+                    key={item.id}
+                    className="relative"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ 
+                      duration: 0.5,
+                      delay: index * 0.05,
+                      type: "spring",
+                      stiffness: 200,
+                      damping: 20
+                    }}
+                    whileHover={{ 
+                      y: -20,
+                      zIndex: 10
+                    }}
+                    onHoverStart={() => setHoveredIndex(index)}
+                    onHoverEnd={() => setHoveredIndex(null)}
+                    transition={{
+                      type: "spring",
+                      stiffness: 400,
+                      damping: 20
+                    }}
+                  >
+                    <motion.div
+                      className="relative cursor-pointer"
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => handleIconClick(item)}
+                    >
+                      {/* Glow effect */}
+                      <motion.div 
+                        className="absolute inset-0 rounded-2xl opacity-0"
+                        animate={{ 
+                          opacity: hoveredIndex === index ? 0.7 : 0,
+                          scale: hoveredIndex === index ? 1.4 : 1
+                        }}
+                        transition={{ duration: 0.3 }}
+                        style={{
+                          background: item.gradient,
+                          filter: 'blur(16px)'
+                        }}
+                      />
+                      
+                      {/* Icon container */}
+                      <div 
+                        className="relative w-14 h-14 rounded-2xl flex items-center justify-center backdrop-blur-xl border border-white/20"
+                        style={{
+                          background: `
+                            linear-gradient(135deg, 
+                              rgba(255, 255, 255, 0.25) 0%, 
+                              rgba(255, 255, 255, 0.1) 100%
+                            )`,
+                          boxShadow: `
+                            0 8px 20px -4px rgba(0, 0, 0, 0.2),
+                            inset 0 2px 2px rgba(255, 255, 255, 0.4),
+                            inset 0 -2px 2px rgba(0, 0, 0, 0.1)
+                          `
+                        }}
+                      >
+                        <item.icon 
+                          className="text-white drop-shadow-lg" 
+                          size={24} 
+                        />
+                      </div>
+                    </motion.div>
+                  </motion.div>
+                ))}
+              </div>
             </motion.div>
-          ))}
-        </div>
-        
-        {/* Enhanced dock reflection */}
-        <div 
-          className="absolute top-full left-6 right-6 h-40 opacity-50 pointer-events-none"
-          style={{
-            background: `
-              linear-gradient(to bottom,
-                rgba(255, 255, 255, 0.25) 0%,
-                rgba(255, 255, 255, 0.15) 20%,
-                rgba(255, 255, 255, 0.08) 40%,
-                transparent 100%
-              )
-            `,
-            transform: 'scaleY(-0.9) perspective(300px) rotateX(35deg)',
-            filter: 'blur(3px)',
-            borderRadius: '0 0 60% 60%',
-            transformOrigin: 'top center',
-          }}
-        />
-        
-        {/* Ambient glow effect */}
-        <div 
-          className="absolute -inset-6 opacity-30 pointer-events-none"
-          style={{
-            background: `
-              radial-gradient(ellipse 300px 150px at center, 
-                rgba(129, 140, 248, 0.4) 0%, 
-                rgba(99, 102, 241, 0.2) 30%,
-                transparent 70%
-              )
-            `,
-            filter: 'blur(30px)',
-          }}
-        />
-      </motion.div>
-    </motion.div>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 };
