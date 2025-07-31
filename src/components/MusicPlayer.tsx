@@ -12,9 +12,10 @@ declare global {
 
 export const MusicPlayer = () => {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(true); // Iniciar muteado para autoplay
   const playerRef = useRef<any>(null);
   const [playerReady, setPlayerReady] = useState(false);
+  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // ID del video de YouTube
   const videoId = "H5v5DJ7Bzq0";
@@ -35,6 +36,9 @@ export const MusicPlayer = () => {
     }
     
     return () => {
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+      }
       if (playerRef.current) {
         playerRef.current.destroy();
         playerRef.current = null;
@@ -48,7 +52,6 @@ export const MusicPlayer = () => {
     // Crear contenedor oculto
     const playerContainer = document.createElement('div');
     playerContainer.id = 'youtube-player-container';
-    // Posicionar fuera de la vista sin afectar el layout
     Object.assign(playerContainer.style, {
       position: 'fixed',
       top: '-1000px',
@@ -65,7 +68,7 @@ export const MusicPlayer = () => {
       width: '1',
       videoId: videoId,
       playerVars: {
-        'autoplay': 0,
+        'autoplay': 1, // Intentar autoplay
         'controls': 0,
         'disablekb': 1,
         'fs': 0,
@@ -74,16 +77,25 @@ export const MusicPlayer = () => {
         'playsinline': 1,
         'rel': 0,
         'showinfo': 0,
-        'mute': 1
+        'mute': 1 // Siempre iniciar muteado para autoplay
       },
       events: {
         'onReady': (event: any) => {
           setPlayerReady(true);
-          event.target.setVolume(30); // 30% volume
-          // Intentar autoplay con mute
-          event.target.playVideo().catch(() => {
-            console.log("Autoplay bloqueado. Haz clic en el reproductor para iniciar.");
-          });
+          event.target.setVolume(30);
+          
+          // Intentar reproducir inmediatamente
+          const attemptPlay = () => {
+            try {
+              event.target.playVideo();
+            } catch (error) {
+              console.log("Error al iniciar reproducción:", error);
+              // Reintentar en 1 segundo
+              retryTimeoutRef.current = setTimeout(attemptPlay, 1000);
+            }
+          };
+          
+          attemptPlay();
         },
         'onStateChange': (event: any) => {
           if (event.data === 1) {
