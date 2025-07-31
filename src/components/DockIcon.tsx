@@ -1,12 +1,11 @@
-
-import React from 'react';
-import { motion } from 'framer-motion';
-import { LucideIcon } from 'lucide-react';
+// src/components/DockIcon.tsx
+import React, { useState } from 'react';
+import { motion, useMotionValue, useTransform } from 'framer-motion';
+import type { LucideIcon } from 'lucide-react';
 
 interface DockIconProps {
   icon: LucideIcon;
   label: string;
-  color: string;
   gradient: string;
   onClick: () => void;
 }
@@ -14,48 +13,53 @@ interface DockIconProps {
 export const DockIcon: React.FC<DockIconProps> = ({
   icon: Icon,
   label,
-  color,
   gradient,
   onClick,
 }) => {
+  const [isHovered, setIsHovered] = useState(false);
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+  
+  const rotateX = useTransform(mouseY, [-50, 50], [5, -5]);
+  const rotateY = useTransform(mouseX, [-50, 50], [-5, 5]);
+  
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left - rect.width / 2;
+    const y = e.clientY - rect.top - rect.height / 2;
+    
+    mouseX.set(x);
+    mouseY.set(y);
+  };
+
   return (
-    <motion.div
-      whileHover={{ 
-        scale: 1.25,
-        rotateY: 10,
-        z: 50,
+    <div 
+      className="relative group cursor-pointer"
+      onMouseMove={handleMouseMove}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => {
+        setIsHovered(false);
+        mouseX.set(0);
+        mouseY.set(0);
       }}
-      whileTap={{ 
-        scale: 0.95,
-        rotateY: 0,
-        transition: { duration: 0.1 }
-      }}
-      className="relative group cursor-pointer perspective-1000"
       onClick={onClick}
-      style={{ transformStyle: 'preserve-3d' }}
     >
       <motion.div
-        className="relative w-16 h-16 rounded-2xl flex items-center justify-center transform-style-3d overflow-hidden"
+        className="relative w-16 h-16 rounded-2xl flex items-center justify-center overflow-hidden"
         style={{
           background: gradient,
           boxShadow: `
-            0 12px 24px rgba(0, 0, 0, 0.4),
+            0 12px 30px rgba(0, 0, 0, 0.4),
             0 6px 12px rgba(0, 0, 0, 0.2),
             0 0 0 1px rgba(255, 255, 255, 0.2),
             inset 0 1px 0 rgba(255, 255, 255, 0.3),
             inset 0 -1px 0 rgba(0, 0, 0, 0.2)
           `,
-          transform: 'translateZ(0px)',
+          transformStyle: 'preserve-3d',
         }}
-        whileHover={{
-          boxShadow: `
-            0 20px 40px rgba(0, 0, 0, 0.5),
-            0 10px 20px rgba(0, 0, 0, 0.3),
-            0 0 20px rgba(255, 255, 255, 0.3),
-            inset 0 1px 0 rgba(255, 255, 255, 0.4),
-            inset 0 -1px 0 rgba(0, 0, 0, 0.2)
-          `,
-          transform: 'translateZ(20px)',
+        animate={{
+          scale: isHovered ? 1.3 : 1,
+          y: isHovered ? -15 : 0,
         }}
         transition={{ 
           type: "spring", 
@@ -65,11 +69,11 @@ export const DockIcon: React.FC<DockIconProps> = ({
       >
         {/* Superficie reflectiva */}
         <div 
-          className="absolute inset-0 rounded-2xl opacity-20"
+          className="absolute inset-0 rounded-2xl opacity-30"
           style={{
             background: `
               linear-gradient(135deg, 
-                rgba(255, 255, 255, 0.4) 0%, 
+                rgba(255, 255, 255, 0.6) 0%, 
                 transparent 30%,
                 transparent 70%,
                 rgba(255, 255, 255, 0.2) 100%
@@ -80,18 +84,19 @@ export const DockIcon: React.FC<DockIconProps> = ({
         
         {/* Icono con efectos de profundidad */}
         <motion.div
-          whileHover={{ 
-            scale: 1.1,
-            rotateY: 5,
+          style={{ 
+            rotateX,
+            rotateY,
+            transformStyle: 'preserve-3d',
           }}
-          transition={{ type: "spring", stiffness: 400, damping: 25 }}
+          className="relative z-10"
         >
           <Icon 
             size={28} 
-            className="text-white relative z-10"
+            className="text-white"
             style={{ 
               filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3))',
-              transform: 'translateZ(5px)',
+              transform: 'translateZ(10px)',
             }}
           />
         </motion.div>
@@ -99,50 +104,55 @@ export const DockIcon: React.FC<DockIconProps> = ({
         {/* Efecto de brillo dinámico */}
         <motion.div
           className="absolute inset-0 rounded-2xl opacity-0"
-          whileHover={{
-            opacity: [0, 0.3, 0],
+          animate={{
+            opacity: isHovered ? [0, 0.4, 0] : 0,
             background: [
               'linear-gradient(45deg, transparent 0%, transparent 100%)',
-              'linear-gradient(45deg, transparent 0%, rgba(255, 255, 255, 0.6) 50%, transparent 100%)',
+              'linear-gradient(45deg, transparent 0%, rgba(255, 255, 255, 0.8) 50%, transparent 100%)',
               'linear-gradient(45deg, transparent 0%, transparent 100%)',
             ],
           }}
           transition={{ duration: 0.6 }}
         />
         
-        {/* Partículas de interacción */}
+        {/* Glow alrededor del icono */}
         <motion.div
-          className="absolute inset-0 rounded-2xl"
-          whileHover={{
-            boxShadow: [
-              '0 0 0 0 rgba(255, 255, 255, 0)',
-              '0 0 0 8px rgba(255, 255, 255, 0.1)',
-              '0 0 0 16px rgba(255, 255, 255, 0)',
-            ]
+          className="absolute inset-0 rounded-2xl opacity-0"
+          animate={{
+            opacity: isHovered ? 0.6 : 0,
+            scale: isHovered ? 1.4 : 1,
           }}
-          transition={{ duration: 0.4 }}
+          transition={{ duration: 0.3 }}
+          style={{
+            background: gradient,
+            filter: 'blur(20px)',
+            zIndex: -1,
+          }}
         />
       </motion.div>
       
       {/* Etiqueta con glassmorphism */}
       <motion.div
         initial={{ opacity: 0, y: 10, scale: 0.8 }}
-        whileHover={{ opacity: 1, y: 0, scale: 1 }}
+        animate={{ 
+          opacity: isHovered ? 1 : 0, 
+          y: isHovered ? 0 : 10, 
+          scale: isHovered ? 1 : 0.8 
+        }}
         transition={{ 
           type: "spring", 
           stiffness: 400, 
           damping: 25,
-          delay: 0.1 
         }}
         className="absolute -bottom-10 left-1/2 transform -translate-x-1/2 whitespace-nowrap"
       >
         <div 
           className="px-3 py-2 text-xs text-white font-semibold rounded-xl backdrop-blur-md"
           style={{
-            background: 'rgba(20, 20, 40, 0.7)',
+            background: 'rgba(20, 20, 40, 0.75)',
             boxShadow: `
               0 8px 16px rgba(0, 0, 0, 0.3),
-              0 0 0 1px rgba(255, 255, 255, 0.1),
+              0 0 0 1px rgba(255, 255, 255, 0.15),
               inset 0 1px 0 rgba(255, 255, 255, 0.2)
             `,
             border: '1px solid rgba(255, 255, 255, 0.15)',
@@ -157,7 +167,7 @@ export const DockIcon: React.FC<DockIconProps> = ({
               background: `
                 linear-gradient(45deg, 
                   transparent 0%, 
-                  rgba(255, 255, 255, 0.2) 50%, 
+                  rgba(255, 255, 255, 0.3) 50%, 
                   transparent 100%
                 )
               `,
@@ -168,7 +178,7 @@ export const DockIcon: React.FC<DockIconProps> = ({
       
       {/* Reflejo del icono */}
       <motion.div
-        className="absolute top-full left-0 right-0 h-16 opacity-30 pointer-events-none"
+        className="absolute top-full left-0 right-0 h-16 opacity-20 pointer-events-none"
         style={{
           background: gradient,
           transform: 'scaleY(-0.6) translateY(4px)',
@@ -176,8 +186,10 @@ export const DockIcon: React.FC<DockIconProps> = ({
           borderRadius: '0 0 8px 8px',
           maskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, transparent 70%)',
         }}
-        initial={{ opacity: 0 }}
-        whileHover={{ opacity: 0.3 }}
+        animate={{ 
+          opacity: isHovered ? 0.25 : 0,
+          y: isHovered ? 2 : 0,
+        }}
       >
         <Icon 
           size={28} 
@@ -188,6 +200,6 @@ export const DockIcon: React.FC<DockIconProps> = ({
           }}
         />
       </motion.div>
-    </motion.div>
+    </div>
   );
 };
