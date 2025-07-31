@@ -22,10 +22,10 @@ export const MusicPlayer = () => {
   useEffect(() => {
     // Cargar API de YouTube
     if (!window.YT) {
-      const script = document.createElement('script');
-      script.src = 'https://www.youtube.com/iframe_api';
-      script.async = true;
-      document.body.appendChild(script);
+      const scriptTag = document.createElement('script');
+      scriptTag.src = 'https://www.youtube.com/iframe_api';
+      scriptTag.async = true;
+      document.body.appendChild(scriptTag);
       
       window.onYouTubeIframeAPIReady = () => {
         initializePlayer();
@@ -37,6 +37,7 @@ export const MusicPlayer = () => {
     return () => {
       if (playerRef.current) {
         playerRef.current.destroy();
+        playerRef.current = null;
       }
     };
   }, []);
@@ -47,11 +48,16 @@ export const MusicPlayer = () => {
     // Crear contenedor oculto
     const playerContainer = document.createElement('div');
     playerContainer.id = 'youtube-player-container';
-    playerContainer.style.position = 'absolute';
-    playerContainer.style.top = '-1000px';
-    playerContainer.style.left = '-1000px';
-    playerContainer.style.width = '1px';
-    playerContainer.style.height = '1px';
+    // Posicionar fuera de la vista sin afectar el layout
+    Object.assign(playerContainer.style, {
+      position: 'fixed',
+      top: '-1000px',
+      left: '-1000px',
+      width: '1px',
+      height: '1px',
+      overflow: 'hidden',
+      pointerEvents: 'none'
+    });
     document.body.appendChild(playerContainer);
     
     playerRef.current = new window.YT.Player('youtube-player-container', {
@@ -75,9 +81,7 @@ export const MusicPlayer = () => {
           setPlayerReady(true);
           event.target.setVolume(30); // 30% volume
           // Intentar autoplay con mute
-          event.target.playVideo().then(() => {
-            setIsPlaying(true);
-          }).catch(() => {
+          event.target.playVideo().catch(() => {
             console.log("Autoplay bloqueado. Haz clic en el reproductor para iniciar.");
           });
         },
@@ -102,10 +106,8 @@ export const MusicPlayer = () => {
     
     if (isPlaying) {
       playerRef.current.pauseVideo();
-      setIsPlaying(false);
     } else {
       playerRef.current.playVideo();
-      setIsPlaying(true);
     }
   };
 
