@@ -7,7 +7,7 @@ import * as THREE from 'three';
 const CONFIG = {
   waveIntensity: 0.4,
   waveSpeed: 0.8,
-  particleCount: 80,
+  particleCount: 60,
   colors: {
     wave: '#10b981',
     waveDeep: '#065f46',
@@ -16,79 +16,160 @@ const CONFIG = {
   }
 };
 
-// Partículas flotantes súper elegantes
-const FloatingOrbs = () => {
-  const meshRef = useRef<THREE.InstancedMesh>(null);
+// Partículas mágicas hermosas
+const MagicalParticles = () => {
+  const groupRef = useRef<THREE.Group>(null);
   const particlesData = useRef<Array<{
+    mesh: THREE.Mesh;
     position: THREE.Vector3;
     velocity: THREE.Vector3;
     phase: number;
     size: number;
-    opacity: number;
+    type: 'glow' | 'crystal' | 'light';
+    hue: number;
+    life: number;
   }>>([]);
 
-  // Inicializar partículas con distribución orgánica
+  // Crear partículas con diferentes tipos y materiales
   useMemo(() => {
-    particlesData.current = Array.from({ length: CONFIG.particleCount }, () => ({
-      position: new THREE.Vector3(
-        (Math.random() - 0.5) * 60,
-        Math.random() * 8 + 2,
-        (Math.random() - 0.5) * 60
-      ),
-      velocity: new THREE.Vector3(
-        (Math.random() - 0.5) * 0.01,
-        (Math.random() - 0.5) * 0.005,
-        (Math.random() - 0.5) * 0.01
-      ),
-      phase: Math.random() * Math.PI * 2,
-      size: Math.random() * 0.4 + 0.2,
-      opacity: Math.random() * 0.6 + 0.4
-    }));
+    particlesData.current = [];
+    
+    for (let i = 0; i < CONFIG.particleCount; i++) {
+      const type = ['glow', 'crystal', 'light'][Math.floor(Math.random() * 3)] as 'glow' | 'crystal' | 'light';
+      const hue = Math.random() * 60 + 160; // Verdes y azules
+      const size = Math.random() * 0.3 + 0.1;
+      
+      let geometry: THREE.BufferGeometry;
+      let material: THREE.Material;
+      
+      switch (type) {
+        case 'glow':
+          geometry = new THREE.SphereGeometry(size, 8, 6);
+          material = new THREE.MeshBasicMaterial({
+            color: new THREE.Color().setHSL(hue / 360, 0.7, 0.6),
+            transparent: true,
+            opacity: 0.6,
+            blending: THREE.AdditiveBlending
+          });
+          break;
+          
+        case 'crystal':
+          geometry = new THREE.OctahedronGeometry(size * 0.8);
+          material = new THREE.MeshPhongMaterial({
+            color: new THREE.Color().setHSL(hue / 360, 0.8, 0.7),
+            transparent: true,
+            opacity: 0.8,
+            shininess: 100,
+            emissive: new THREE.Color().setHSL(hue / 360, 0.5, 0.1)
+          });
+          break;
+          
+        case 'light':
+          geometry = new THREE.PlaneGeometry(size * 2, size * 2);
+          material = new THREE.MeshBasicMaterial({
+            color: new THREE.Color().setHSL(hue / 360, 0.6, 0.8),
+            transparent: true,
+            opacity: 0.4,
+            blending: THREE.AdditiveBlending,
+            side: THREE.DoubleSide
+          });
+          break;
+      }
+      
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.position.set(
+        (Math.random() - 0.5) * 50,
+        Math.random() * 10 + 1,
+        (Math.random() - 0.5) * 50
+      );
+      
+      particlesData.current.push({
+        mesh,
+        position: mesh.position.clone(),
+        velocity: new THREE.Vector3(
+          (Math.random() - 0.5) * 0.008,
+          Math.random() * 0.003 + 0.001,
+          (Math.random() - 0.5) * 0.008
+        ),
+        phase: Math.random() * Math.PI * 2,
+        size,
+        type,
+        hue,
+        life: Math.random() * 1000
+      });
+    }
   }, []);
 
   useFrame((state) => {
-    if (!meshRef.current) return;
+    if (!groupRef.current) return;
 
     const time = state.clock.getElapsedTime();
-    const dummy = new THREE.Object3D();
-
+    
     particlesData.current.forEach((particle, i) => {
-      // Movimiento orgánico y suave
+      particle.life += 1;
+      
+      // Movimiento fluido y orgánico
       particle.position.add(particle.velocity);
       
-      // Flotación vertical suave
-      particle.position.y += Math.sin(time * 0.5 + particle.phase) * 0.002;
+      // Flotación con diferentes patrones según el tipo
+      switch (particle.type) {
+        case 'glow':
+          particle.position.y += Math.sin(time * 0.6 + particle.phase) * 0.003;
+          particle.position.x += Math.sin(time * 0.3 + particle.phase) * 0.002;
+          break;
+        case 'crystal':
+          particle.position.y += Math.cos(time * 0.4 + particle.phase) * 0.004;
+          particle.mesh.rotation.x += 0.01;
+          particle.mesh.rotation.y += 0.008;
+          break;
+        case 'light':
+          particle.position.y += Math.sin(time * 0.8 + particle.phase) * 0.002;
+          particle.mesh.rotation.z += 0.02;
+          particle.mesh.lookAt(state.camera.position);
+          break;
+      }
       
-      // Deriva horizontal sutil
-      particle.position.x += Math.sin(time * 0.2 + particle.phase) * 0.001;
-      particle.position.z += Math.cos(time * 0.15 + particle.phase * 1.3) * 0.001;
-
-      // Wrapping suave
-      if (particle.position.y > 12) particle.position.y = -2;
-      if (particle.position.y < -3) particle.position.y = 12;
-      if (Math.abs(particle.position.x) > 35) particle.position.x *= -0.8;
-      if (Math.abs(particle.position.z) > 35) particle.position.z *= -0.8;
-
-      // Actualizar instancia
-      dummy.position.copy(particle.position);
-      dummy.scale.setScalar(particle.size * (0.8 + Math.sin(time + particle.phase) * 0.2));
-      dummy.updateMatrix();
-      meshRef.current!.setMatrixAt(i, dummy.matrix);
+      // Efecto de respiración (pulsing)
+      const pulse = 0.7 + Math.sin(time * 2 + particle.phase) * 0.3;
+      particle.mesh.scale.setScalar(pulse);
+      
+      // Cambio sutil de color
+      if (particle.type === 'glow') {
+        const newHue = (particle.hue + time * 10) % 360;
+        (particle.mesh.material as THREE.MeshBasicMaterial).color.setHSL(
+          newHue / 360, 0.7, 0.6 + Math.sin(time + particle.phase) * 0.2
+        );
+      }
+      
+      // Ciclo de vida y reaparición
+      if (particle.position.y > 15 || particle.life > 800) {
+        particle.position.set(
+          (Math.random() - 0.5) * 50,
+          -2,
+          (Math.random() - 0.5) * 50
+        );
+        particle.life = 0;
+        particle.hue = Math.random() * 60 + 160;
+      }
+      
+      // Límites suaves
+      if (Math.abs(particle.position.x) > 30) {
+        particle.velocity.x *= -0.5;
+      }
+      if (Math.abs(particle.position.z) > 30) {
+        particle.velocity.z *= -0.5;
+      }
+      
+      particle.mesh.position.copy(particle.position);
     });
-
-    meshRef.current.instanceMatrix.needsUpdate = true;
   });
 
   return (
-    <instancedMesh ref={meshRef} args={[undefined, undefined, CONFIG.particleCount]}>
-      <sphereGeometry args={[0.08, 12, 8]} />
-      <meshBasicMaterial
-        color={CONFIG.colors.particles}
-        transparent
-        opacity={0.7}
-        blending={THREE.AdditiveBlending}
-      />
-    </instancedMesh>
+    <group ref={groupRef}>
+      {particlesData.current.map((particle, i) => (
+        <primitive key={i} object={particle.mesh} />
+      ))}
+    </group>
   );
 };
 
@@ -312,8 +393,8 @@ export const WaveSystem = () => {
         {/* Glow de profundidad */}
         <DepthGlow />
         
-        {/* Partículas flotantes */}
-        <FloatingOrbs />
+        {/* Partículas mágicas */}
+        <MagicalParticles />
         
         {/* Burbujas que suben */}
         <RisingBubbles />
