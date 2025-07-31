@@ -1,5 +1,5 @@
-
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+// src/context/WindowContext.tsx
+import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback, useMemo } from 'react';
 
 interface Window {
   id: string;
@@ -19,9 +19,11 @@ interface WindowContextType {
   closeWindow: (id: string) => void;
   minimizeWindow: (id: string) => void;
   maximizeWindow: (id: string) => void;
+  restoreWindow: (id: string) => void;
   bringToFront: (id: string) => void;
   updateWindowPosition: (id: string, position: { x: number; y: number }) => void;
   updateWindowSize: (id: string, size: { width: number; height: number }) => void;
+  getMinimizedWindows: () => Window[];
 }
 
 const WindowContext = createContext<WindowContextType | undefined>(undefined);
@@ -34,125 +36,196 @@ export const useWindows = () => {
   return context;
 };
 
-export const WindowProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [windows, setWindows] = useState<Window[]>([]);
-  const [maxZIndex, setMaxZIndex] = useState(100);
-  const [minimizedCount, setMinimizedCount] = useState(0);
+// Función para generar posición inicial de ventanas
+const generateInitialPosition = (index: number, windowWidth: number, windowHeight: number) => ({
+  x: Math.max(50, Math.min(window.innerWidth - windowWidth - 50, 100 + index * 30)),
+  y: Math.max(50, Math.min(window.innerHeight - windowHeight - 50, 100 + index * 30))
+});
 
-  // Load windows from localStorage on mount
-  useEffect(() => {
-    const savedWindows = localStorage.getItem('sandino-windows');
-    if (savedWindows) {
-      try {
-        const parsedWindows = JSON.parse(savedWindows);
-        setWindows(parsedWindows);
-        
-        // Find the highest zIndex to set maxZIndex properly
-        const highestZIndex = Math.max(...parsedWindows.map((w: Window) => w.zIndex), 100);
-        setMaxZIndex(highestZIndex);
-        
-        // Count minimized windows
-        const minimizedWindowsCount = parsedWindows.filter((w: Window) => w.isMinimized && w.isOpen).length;
-        setMinimizedCount(minimizedWindowsCount);
-      } catch (error) {
-        console.error("Error loading windows from localStorage:", error);
+export const WindowProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [windows, setWindows] = useState<Window[]>(() => {
+    // Estado inicial desde localStorage o vacío
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('sandino-windows');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {
+          console.error('Error parsing saved windows:', e);
+        }
       }
     }
-  }, []);
+    return [];
+  });
   
-  // Save windows to localStorage whenever they change
+  const [maxZIndex, setMaxZIndex] = useState(100);
+
+  // Guardar en localStorage cuando cambian las ventanas
   useEffect(() => {
-    if (windows.length > 0) {
-      localStorage.setItem('sandino-windows', JSON.stringify(windows));
-    }
+    localStorage.setItem('sandino-windows', JSON.stringify(windows));
   }, [windows]);
 
-  const openWindow = (id: string, title: string) => {
+  // Actualizar maxZIndex cuando cambian las ventanas
+  useEffect(() => {
+    const highestZIndex = Math.max(...windows.map(w => w.zIndex), 100);
+    setMaxZIndex(highestZIndex);
+  }, [windows]);
+
+  // Obtener ventanas minimizadas (memoizado para performance)
+  const getMinimizedWindows = useCallback(() => {
+    return windows.filter(w => w.isOpen && w.isMinimized);
+  }, [windows]);
+
+  // Abrir o restaurar una ventana
+  const openWindow = useCallback((id: string, title: string) => {
     setWindows(prev => {
-      const existing = prev.find(w => w.id === id);
-      if (existing) {
-        return prev.map(w => w.id === id ? { ...w, isOpen: true, isMinimized: false, zIndex: maxZIndex + 1 } : w);
+      const existingIndex = prev.findIndex(w => w.id === id);
+      
+      if (existingIndex !== -1) {
+        // Si existe, restaurarla
+        const existing = prev[existingIndex];
+        const updatedWindow = {
+          ...existing,
+          isOpen: true,
+          isMinimized: false,
+          zIndex: maxZIndex + 1
+        };
+        
+        const newWindows = [...prev];
+        newWindows[existingIndex] = updatedWindow;
+        return newWindows;
       }
       
+      // Crear nueva ventana
       const newWindow: Window = {
         id,
         title,
         isOpen: true,
         isMinimized: false,
         isMaximized: false,
-        position: { x: Math.max(50, Math.min(window.innerWidth - 650, 100 + prev.length * 40)), 
-                   y: Math.max(50, Math.min(window.innerHeight - 450, 100 + prev.length * 40)) },
+        position: generateInitialPosition(prev.filter(w => w.isOpen).length, 600, 400),
         size: { width: 600, height: 400 },
         zIndex: maxZIndex + 1,
       };
       
-      setMaxZIndex(prev => prev + 1);
       return [...prev, newWindow];
     });
-  };
+    
+    setMaxZIndex(prev => prev + 1);
+  }, [maxZIndex]);
 
-  const closeWindow = (id: string) => {
+  // Cerrar una ventana
+  const closeWindow = useCallback((id: string) => {
     setWindows(prev => {
-      const updatedWindows = prev.map(w => {
-        if (w.id === id) {
-          // If window was minimized, decrease minimized count
-          if (w.isMinimized && w.isOpen) {
-            setMinimizedCount(count => Math.max(0, count - 1));
-          }
-          return { ...w, isOpen: false, isMinimized: false };
-        }
-        return w;
-      });
-      return updatedWindows;
+      const windowToClose = prev.find(w => w.id === id);
+      if (!windowToClose || !windowToClose.isOpen) return prev;
+      
+      return prev.map(w => 
+        w.id === id ? { ...w, isOpen: false, isMinimized: false } : w
+      );
     });
-  };
+  }, []);
 
-  const minimizeWindow = (id: string) => {
+  // Minimizar una ventana
+  const minimizeWindow = useCallback((id: string) => {
     setWindows(prev => {
       const windowToMinimize = prev.find(w => w.id === id);
-      if (!windowToMinimize || (windowToMinimize.isMinimized && windowToMinimize.isOpen)) return prev;
-      
-      // Increment minimized count for a new minimized window
-      if (windowToMinimize.isOpen && !windowToMinimize.isMinimized) {
-        setMinimizedCount(count => count + 1);
+      if (!windowToMinimize || !windowToMinimize.isOpen || windowToMinimize.isMinimized) {
+        return prev;
       }
       
-      return prev.map(w => w.id === id ? { 
-        ...w, 
-        isMinimized: true,
-        minimizedPosition: minimizedCount
-      } : w);
+      return prev.map(w => 
+        w.id === id ? { ...w, isMinimized: true } : w
+      );
     });
-  };
+  }, []);
 
-  const maximizeWindow = (id: string) => {
-    setWindows(prev => prev.map(w => w.id === id ? { ...w, isMaximized: !w.isMaximized } : w));
-  };
+  // Maximizar/restaurar una ventana
+  const maximizeWindow = useCallback((id: string) => {
+    setWindows(prev => 
+      prev.map(w => 
+        w.id === id ? { ...w, isMaximized: !w.isMaximized } : w
+      )
+    );
+  }, []);
 
-  const bringToFront = (id: string) => {
+  // Restaurar una ventana minimizada
+  const restoreWindow = useCallback((id: string) => {
+    setWindows(prev => {
+      const windowToRestore = prev.find(w => w.id === id);
+      if (!windowToRestore || !windowToRestore.isOpen) return prev;
+      
+      return prev.map(w => 
+        w.id === id ? { 
+          ...w, 
+          isMinimized: false,
+          zIndex: maxZIndex + 1
+        } : w
+      );
+    });
+    
     setMaxZIndex(prev => prev + 1);
-    setWindows(prev => prev.map(w => w.id === id ? { ...w, zIndex: maxZIndex + 1 } : w));
-  };
+  }, [maxZIndex]);
 
-  const updateWindowPosition = (id: string, position: { x: number; y: number }) => {
-    setWindows(prev => prev.map(w => w.id === id ? { ...w, position } : w));
-  };
+  // Traer ventana al frente
+  const bringToFront = useCallback((id: string) => {
+    setWindows(prev => {
+      const windowToFocus = prev.find(w => w.id === id);
+      if (!windowToFocus || !windowToFocus.isOpen) return prev;
+      
+      return prev.map(w => 
+        w.id === id ? { ...w, zIndex: maxZIndex + 1 } : w
+      );
+    });
+    
+    setMaxZIndex(prev => prev + 1);
+  }, [maxZIndex]);
 
-  const updateWindowSize = (id: string, size: { width: number; height: number }) => {
-    setWindows(prev => prev.map(w => w.id === id ? { ...w, size } : w));
-  };
+  // Actualizar posición de ventana
+  const updateWindowPosition = useCallback((id: string, position: { x: number; y: number }) => {
+    setWindows(prev => 
+      prev.map(w => 
+        w.id === id ? { ...w, position } : w
+      )
+    );
+  }, []);
+
+  // Actualizar tamaño de ventana
+  const updateWindowSize = useCallback((id: string, size: { width: number; height: number }) => {
+    setWindows(prev => 
+      prev.map(w => 
+        w.id === id ? { ...w, size } : w
+      )
+    );
+  }, []);
+
+  // Valor del contexto optimizado con useMemo
+  const contextValue = useMemo(() => ({
+    windows,
+    openWindow,
+    closeWindow,
+    minimizeWindow,
+    maximizeWindow,
+    restoreWindow,
+    bringToFront,
+    updateWindowPosition,
+    updateWindowSize,
+    getMinimizedWindows
+  }), [
+    windows,
+    openWindow,
+    closeWindow,
+    minimizeWindow,
+    maximizeWindow,
+    restoreWindow,
+    bringToFront,
+    updateWindowPosition,
+    updateWindowSize,
+    getMinimizedWindows
+  ]);
 
   return (
-    <WindowContext.Provider value={{
-      windows,
-      openWindow,
-      closeWindow,
-      minimizeWindow,
-      maximizeWindow,
-      bringToFront,
-      updateWindowPosition,
-      updateWindowSize,
-    }}>
+    <WindowContext.Provider value={contextValue}>
       {children}
     </WindowContext.Provider>
   );
