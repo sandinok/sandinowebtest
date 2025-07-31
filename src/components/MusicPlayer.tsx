@@ -1,63 +1,45 @@
 // src/components/MusicPlayer.tsx
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Volume2, VolumeX, Play, Pause, Music } from 'lucide-react';
+import { Volume2, VolumeX, Play, Pause } from 'lucide-react';
 
 export const MusicPlayer = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [volume, setVolume] = useState(0.3);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
 
-  // URL de música de dominio público (reemplazar con tu música)
-  const musicUrl = "https://www.youtube.com/watch?v=H5v5DJ7Bzq0"; // Placeholder
+  // Usar un proxy para evitar restricciones de CORS
+  const musicUrl = "https://cors-anywhere.herokuapp.com/https://www.youtube.com/watch?v=H5v5DJ7Bzq0";
 
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
-    const handleLoadedData = () => {
-      setIsLoaded(true);
-      setDuration(audio.duration || 0);
+    const setupAudio = () => {
+      audio.volume = volume;
+      
+      // Intentar autoplay con políticas modernas
+      const attemptPlay = () => {
+        audio.play()
+          .then(() => setIsPlaying(true))
+          .catch(() => {
+            // Silenciosamente fallar si autoplay está bloqueado
+            console.log("Autoplay bloqueado, haz clic en el reproductor para iniciar");
+          });
+      };
+
+      // Iniciar carga y posible reproducción
+      setTimeout(attemptPlay, 1000);
     };
 
-    const updateTime = () => setCurrentTime(audio.currentTime || 0);
-    const handleEnded = () => {
-      setIsPlaying(false);
-      audio.currentTime = 0;
-    };
-    
-    audio.addEventListener('loadeddata', handleLoadedData);
-    audio.addEventListener('timeupdate', updateTime);
-    audio.addEventListener('ended', handleEnded);
-    audio.addEventListener('canplaythrough', handleLoadedData);
-
-    // Intentar autoplay con políticas modernas
-    const attemptPlay = () => {
-      if (audio.readyState >= 2) {
-        audio.volume = volume;
-        audio.play().then(() => setIsPlaying(true)).catch(() => {
-          // Silenciosamente fallar si autoplay está bloqueado
-        });
-      } else {
-        setTimeout(attemptPlay, 500);
-      }
-    };
-
-    // Iniciar carga y posible reproducción
-    setTimeout(attemptPlay, 1000);
+    // Setup inicial
+    setupAudio();
 
     return () => {
-      audio.removeEventListener('loadeddata', handleLoadedData);
-      audio.removeEventListener('timeupdate', updateTime);
-      audio.removeEventListener('ended', handleEnded);
-      audio.removeEventListener('canplaythrough', handleLoadedData);
+      audio.pause();
     };
-  }, [volume]);
+  }, []);
 
   useEffect(() => {
     if (audioRef.current) {
@@ -66,7 +48,7 @@ export const MusicPlayer = () => {
   }, [volume, isMuted]);
 
   const togglePlay = async () => {
-    if (!audioRef.current || !isLoaded) return;
+    if (!audioRef.current) return;
 
     try {
       if (isPlaying) {
@@ -91,20 +73,13 @@ export const MusicPlayer = () => {
     if (newVolume > 0 && isMuted) setIsMuted(false);
   };
 
-  const formatTime = (time: number) => {
-    if (!isFinite(time) || isNaN(time)) return '0:00';
-    const minutes = Math.floor(time / 60);
-    const seconds = Math.floor(time % 60);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  };
-
   return (
     <>
       <audio
         ref={audioRef}
+        loop
         preload="auto"
         style={{ display: 'none' }}
-        crossOrigin="anonymous"
       >
         <source src={musicUrl} type="audio/mpeg" />
         Tu navegador no soporta el elemento de audio.
@@ -126,13 +101,7 @@ export const MusicPlayer = () => {
         <motion.div 
           className="relative overflow-hidden rounded-2xl cursor-pointer backdrop-blur-xl"
           style={{
-            background: `
-              linear-gradient(135deg, 
-                rgba(255, 255, 255, 0.25) 0%, 
-                rgba(255, 255, 255, 0.15) 50%,
-                rgba(255, 255, 255, 0.05) 100%
-              )
-            `,
+            background: 'rgba(255, 255, 255, 0.15)',
             boxShadow: `
               0 8px 32px rgba(0, 0, 0, 0.15),
               0 0 0 1px rgba(255, 255, 255, 0.15),
@@ -150,11 +119,11 @@ export const MusicPlayer = () => {
               inset 0 -1px 0 rgba(0, 0, 0, 0.1)
             `
           }}
-          onClick={() => setIsExpanded(!isExpanded)}
+          onClick={togglePlay}
           layout
           transition={{ type: "spring", stiffness: 300, damping: 30 }}
         >
-          <div className="flex items-center gap-3 p-4">
+          <div className="flex items-center gap-3 p-3">
             {/* Visualizer Icon */}
             <motion.div
               className="relative flex-shrink-0"
@@ -163,7 +132,11 @@ export const MusicPlayer = () => {
               transition={{ type: "spring", stiffness: 400, damping: 10 }}
             >
               <div className="p-2 rounded-full bg-gradient-to-br from-emerald-400/20 to-cyan-400/20">
-                <Music size={18} className="text-emerald-100" />
+                {isPlaying ? (
+                  <Pause size={16} className="text-emerald-100" />
+                ) : (
+                  <Play size={16} className="text-emerald-100 ml-0.5" />
+                )}
               </div>
               {isPlaying && (
                 <motion.div
@@ -181,142 +154,57 @@ export const MusicPlayer = () => {
               )}
             </motion.div>
             
-            {/* Content Area */}
-            <AnimatePresence mode="wait">
-              {!isExpanded ? (
+            {/* Audio Visualizer */}
+            <div className="flex gap-1 items-end h-4">
+              {[0, 1, 2, 3].map((i) => (
                 <motion.div
-                  key="compact"
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 10 }}
-                  transition={{ duration: 0.2 }}
-                  className="flex items-center gap-3 min-w-[120px]"
-                >
-                  {/* Audio Visualizer */}
-                  <div className="flex gap-1 items-end h-4">
-                    {[0, 1, 2, 3].map((i) => (
-                      <motion.div
-                        key={i}
-                        className="w-1 rounded-full bg-gradient-to-t from-emerald-300 to-cyan-300"
-                        animate={isPlaying ? { 
-                          height: [4, 12, 6, 10, 4],
-                        } : { height: 4 }}
-                        transition={{
-                          duration: 1.5,
-                          repeat: isPlaying ? Infinity : 0,
-                          delay: i * 0.1,
-                          ease: "easeInOut"
-                        }}
-                      />
-                    ))}
-                  </div>
-                  
-                  {/* Status Text */}
-                  <span className="text-xs text-emerald-100 font-medium truncate">
-                    {isLoaded ? (isPlaying ? 'Reproduciendo' : 'Pausado') : 'Cargando...'}
-                  </span>
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="expanded"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.25 }}
-                  className="flex flex-col gap-3 min-w-[240px]"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {/* Track Info */}
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-semibold text-white">Frutiger Aero</p>
-                      <p className="text-xs text-emerald-200/80">Música de fondo</p>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      {[...Array(3)].map((_, i) => (
-                        <motion.div
-                          key={i}
-                          className="w-1 h-1 rounded-full bg-emerald-400"
-                          animate={isPlaying ? { 
-                            opacity: [0.4, 1, 0.4],
-                          } : { opacity: 0.4 }}
-                          transition={{
-                            duration: 1.5,
-                            repeat: isPlaying ? Infinity : 0,
-                            delay: i * 0.2,
-                          }}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  
-                  {/* Controls */}
-                  <div className="flex items-center gap-3">
-                    <motion.button
-                      onClick={togglePlay}
-                      disabled={!isLoaded}
-                      className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-all disabled:opacity-50 backdrop-blur-sm"
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                    >
-                      {isPlaying ? (
-                        <Pause size={16} className="text-white" />
-                      ) : (
-                        <Play size={16} className="text-white ml-0.5" />
-                      )}
-                    </motion.button>
-                    
-                    {/* Progress Bar */}
-                    <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
-                      <motion.div
-                        className="h-full bg-gradient-to-r from-emerald-400 to-cyan-400 rounded-full"
-                        style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
-                        transition={{ duration: 0.1 }}
-                      />
-                    </div>
-                    
-                    {/* Mute Button */}
-                    <motion.button
-                      onClick={toggleMute}
-                      className="p-1.5 rounded-full hover:bg-white/10 transition-colors"
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                    >
-                      {isMuted ? (
-                        <VolumeX size={14} className="text-white" />
-                      ) : (
-                        <Volume2 size={14} className="text-white" />
-                      )}
-                    </motion.button>
-                  </div>
-
-                  {/* Volume Control */}
-                  <div className="flex items-center gap-2">
-                    <Volume2 size={12} className="text-emerald-200 flex-shrink-0" />
-                    <input
-                      type="range"
-                      min="0"
-                      max="1"
-                      step="0.01"
-                      value={volume}
-                      onChange={handleVolumeChange}
-                      className="flex-1 h-1.5 bg-white/20 rounded-full outline-none appearance-none slider"
-                      style={{
-                        background: `linear-gradient(to right, #10b981 0%, #10b981 ${volume * 100}%, rgba(255,255,255,0.2) ${volume * 100}%, rgba(255,255,255,0.2) 100%)`
-                      }}
-                    />
-                  </div>
-                  
-                  {/* Time Display */}
-                  <div className="flex items-center justify-between text-xs text-emerald-200/80 font-mono">
-                    <span>{formatTime(currentTime)}</span>
-                    <span>{formatTime(duration)}</span>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                  key={i}
+                  className="w-1 rounded-full bg-gradient-to-t from-emerald-300 to-cyan-300"
+                  animate={isPlaying ? { 
+                    height: [4, 12, 6, 10, 4],
+                  } : { height: 4 }}
+                  transition={{
+                    duration: 1.5,
+                    repeat: isPlaying ? Infinity : 0,
+                    delay: i * 0.1,
+                    ease: "easeInOut"
+                  }}
+                />
+              ))}
+            </div>
+            
+            {/* Volume Control */}
+            <div className="flex items-center gap-2 ml-2">
+              <motion.button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleMute();
+                }}
+                className="p-1 rounded-full hover:bg-white/10 transition-colors"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                {isMuted ? (
+                  <VolumeX size={14} className="text-white" />
+                ) : (
+                  <Volume2 size={14} className="text-white" />
+                )}
+              </motion.button>
+              
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value={volume}
+                onChange={handleVolumeChange}
+                onClick={(e) => e.stopPropagation()}
+                className="w-16 h-1.5 bg-white/20 rounded-full outline-none appearance-none slider"
+                style={{
+                  background: `linear-gradient(to right, #10b981 0%, #10b981 ${volume * 100}%, rgba(255,255,255,0.2) ${volume * 100}%, rgba(255,255,255,0.2) 100%)`
+                }}
+              />
+            </div>
           </div>
 
           {/* Glass Reflection Effect */}
@@ -339,16 +227,16 @@ export const MusicPlayer = () => {
       <style jsx>{`
         .slider::-webkit-slider-thumb {
           appearance: none;
-          width: 14px;
-          height: 14px;
+          width: 12px;
+          height: 12px;
           border-radius: 50%;
           background: #10b981;
           cursor: pointer;
           box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
         .slider::-moz-range-thumb {
-          width: 14px;
-          height: 14px;
+          width: 12px;
+          height: 12px;
           border-radius: 50%;
           background: #10b981;
           cursor: pointer;
