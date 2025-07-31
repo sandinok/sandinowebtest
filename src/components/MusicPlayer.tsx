@@ -14,7 +14,7 @@ export const MusicPlayer = () => {
   const audioRef = useRef<HTMLAudioElement>(null);
 
   // URL de música de dominio público (reemplazar con tu música)
-  const musicUrl = "https://www.soundjay.com/misc/sounds/magic-chime-02.wav"; // Placeholder
+  const musicUrl = "https://www.youtube.com/watch?v=H5v5DJ7Bzq0"; // Placeholder
 
   useEffect(() => {
     const audio = audioRef.current;
