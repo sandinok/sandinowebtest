@@ -92,7 +92,7 @@ export const WaveSystem = () => {
   return (
     <div className="fixed bottom-0 left-0 right-0 h-[50vh] z-0 pointer-events-none"> {/* Altura reducida para menos área de render */}
       <Canvas
-        camera={{ position: [0, 12, 18], fov: 50 }} {/* FOV reducido para menos geometría visible */}
+        camera={{ position: [0, 12, 18], fov: 50 }} // FOV reducido para menos geometría visible
         style={{ background: 'transparent' }}
         gl={{ 
           alpha: true, 
