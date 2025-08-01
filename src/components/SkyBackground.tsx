@@ -2,18 +2,18 @@
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 
-// Componente optimizado para estrellas con mejoras: más capas, parallax sutil y brillo variable
+// Componente híbrido para estrellas: combina realismo con animaciones suaves y parallax balanceado
 const StarsLayer = React.memo(() => {
   const stars = useMemo(() => {
-    return Array.from({ length: 150 }).map((_, i) => ({
+    return Array.from({ length: 120 }).map((_, i) => ({  // Balance: 120 estrellas para densidad realista sin sobrecarga
       id: i,
       left: Math.random() * 100,
-      top: Math.random() * 80, // Extendido para cubrir más del cielo
-      size: Math.random() * 2 + 0.5,
-      opacity: Math.random() * 0.6 + 0.4,
-      delay: Math.random() * 10,
-      duration: 3 + Math.random() * 4,
-      layer: Math.floor(Math.random() * 3) + 1, // Capas para parallax
+      top: Math.random() * 75,  // Cobertura equilibrada del cielo
+      size: Math.random() * 1.8 + 0.5,
+      opacity: Math.random() * 0.65 + 0.35,
+      delay: Math.random() * 9,
+      duration: 2.5 + Math.random() * 3.5,
+      layer: Math.floor(Math.random() * 3) + 1,  // Capas para parallax sutil
     }));
   }, []);
 
@@ -25,7 +25,7 @@ const StarsLayer = React.memo(() => {
           initial={{ opacity: 0 }}
           animate={{ 
             opacity: [0, star.opacity, 0],
-            y: [0, star.layer * 5] // Movimiento sutil vertical para parallax
+            y: [0, star.layer * 4]  // Movimiento vertical suave para profundidad
           }}
           transition={{
             duration: star.duration,
@@ -39,7 +39,7 @@ const StarsLayer = React.memo(() => {
             top: `${star.top}%`,
             width: `${star.size}px`,
             height: `${star.size}px`,
-            boxShadow: `0 0 ${star.size * 3}px rgba(255, 255, 255, ${star.opacity})`, // Brillo ajustable
+            boxShadow: `0 0 ${star.size * 2.5}px rgba(255, 255, 255, ${star.opacity * 0.8})`,  // Brillo realista y balanceado
           }}
         />
       ))}
@@ -47,32 +47,32 @@ const StarsLayer = React.memo(() => {
   );
 });
 
-// Componente optimizado para nebulosas con colores más etéreos y degradados suaves
+// Componente híbrido para nebulosas: gradientes realistas con animación etérea y blur optimizado
 const NebulaLayer = React.memo(() => (
   <motion.div
     animate={{ 
-      opacity: [0.1, 0.25, 0.1],
-      scale: [1, 1.03, 1],
-      rotate: [0, 1, 0] // Rotación sutil para movimiento etéreo
+      opacity: [0.09, 0.22, 0.09],
+      scale: [1, 1.04, 1],
+      rotate: [0, 0.5, 0]  // Rotación mínima para naturalidad
     }}
     transition={{ 
-      opacity: { duration: 20, repeat: Infinity, ease: "easeInOut" },
-      scale: { duration: 25, repeat: Infinity, ease: "easeInOut" },
-      rotate: { duration: 30, repeat: Infinity, ease: "easeInOut" }
+      opacity: { duration: 22, repeat: Infinity, ease: "easeInOut" },
+      scale: { duration: 28, repeat: Infinity, ease: "easeInOut" },
+      rotate: { duration: 32, repeat: Infinity, ease: "easeInOut" }
     }}
     className="absolute inset-0"
     style={{
       background: `
-        radial-gradient(ellipse 700px 350px at 25% 20%, rgba(100, 200, 255, 0.18) 0%, transparent 75%),
-        radial-gradient(ellipse 500px 250px at 75% 55%, rgba(150, 100, 255, 0.15) 0%, transparent 75%),
-        radial-gradient(ellipse 400px 200px at 45% 75%, rgba(16, 185, 129, 0.12) 0%, transparent 75%)
+        radial-gradient(ellipse 650px 325px at 22% 18%, rgba(100, 200, 255, 0.16) 0%, transparent 72%),
+        radial-gradient(ellipse 450px 225px at 78% 58%, rgba(150, 100, 255, 0.13) 0%, transparent 72%),
+        radial-gradient(ellipse 350px 175px at 48% 78%, rgba(16, 185, 129, 0.11) 0%, transparent 72%)
       `,
-      filter: 'blur(60px)', // Blur aumentado para suavidad
+      filter: 'blur(55px)',  // Blur equilibrado para realismo suave
     }}
   />
 ));
 
-// Componente optimizado para cometas/meteoros con trayectorias variables y colas mejoradas
+// Componente híbrido para cometas/meteoros: trayectorias realistas con colas y variedad balanceada
 const CometLayer = React.memo(() => {
   const windowWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
   const windowHeight = typeof window !== 'undefined' ? window.innerHeight : 800;
@@ -80,86 +80,85 @@ const CometLayer = React.memo(() => {
   return (
     <>
       <motion.div
-        initial={{ x: -150, y: windowHeight * 0.2, opacity: 0 }}
+        initial={{ x: -120, y: windowHeight * 0.15, opacity: 0 }}
         animate={{ 
-          x: windowWidth + 150, 
-          y: -windowHeight * 0.1, 
-          opacity: [0, 0.8, 0] 
+          x: windowWidth + 120, 
+          y: -windowHeight * 0.05, 
+          opacity: [0, 0.75, 0] 
         }}
         transition={{ 
-          duration: 6, 
+          duration: 6.5, 
           repeat: Infinity, 
-          repeatDelay: 20,
+          repeatDelay: 22,
           ease: "linear"
         }}
-        className="absolute w-2 h-2 bg-white rounded-full"
+        className="absolute w-1.5 h-1.5 bg-white rounded-full"
         style={{
-          boxShadow: '0 0 20px rgba(255, 255, 255, 0.8), -30px 30px 50px rgba(255, 255, 255, 0.3)', // Cola extendida
+          boxShadow: '0 0 18px rgba(255, 255, 255, 0.75), -25px 25px 45px rgba(255, 255, 255, 0.25)',  // Cola realista
         }}
       />
       
       <motion.div
-        initial={{ x: windowWidth + 150, y: windowHeight * 0.4, opacity: 0 }}
+        initial={{ x: windowWidth + 120, y: windowHeight * 0.35, opacity: 0 }}
         animate={{ 
-          x: -250, 
-          y: windowHeight * 0.1, 
-          opacity: [0, 0.7, 0] 
+          x: -220, 
+          y: windowHeight * 0.05, 
+          opacity: [0, 0.65, 0] 
         }}
         transition={{ 
-          duration: 8, 
+          duration: 8.5, 
           repeat: Infinity, 
-          repeatDelay: 25, 
-          delay: 5,
+          repeatDelay: 28, 
+          delay: 4.5,
           ease: "linear"
         }}
-        className="absolute w-2 h-2 bg-blue-200 rounded-full"
+        className="absolute w-1.5 h-1.5 bg-blue-300 rounded-full"
         style={{
-          boxShadow: '0 0 20px rgba(100, 200, 255, 0.8), 30px 30px 50px rgba(100, 200, 255, 0.25)', // Cola en dirección opuesta
+          boxShadow: '0 0 18px rgba(100, 200, 255, 0.75), 25px 25px 45px rgba(100, 200, 255, 0.22)',  // Cola en dirección opuesta
         }}
       />
       
-      {/* Cometa adicional para más dinamismo */}
       <motion.div
-        initial={{ x: windowWidth * 0.3, y: -100, opacity: 0 }}
+        initial={{ x: windowWidth * 0.4, y: -80, opacity: 0 }}
         animate={{ 
-          x: windowWidth * 0.7, 
-          y: windowHeight + 100, 
-          opacity: [0, 0.6, 0] 
+          x: windowWidth * 0.6, 
+          y: windowHeight + 80, 
+          opacity: [0, 0.55, 0] 
         }}
         transition={{ 
-          duration: 10, 
+          duration: 9.5, 
           repeat: Infinity, 
-          repeatDelay: 35,
-          delay: 10,
+          repeatDelay: 32,
+          delay: 9,
           ease: "linear"
         }}
-        className="absolute w-1.5 h-1.5 bg-yellow-100 rounded-full"
+        className="absolute w-1 h-1 bg-yellow-100 rounded-full"
         style={{
-          boxShadow: '0 0 15px rgba(255, 255, 200, 0.7), 0 40px 60px rgba(255, 255, 200, 0.2)', // Cola vertical
+          boxShadow: '0 0 12px rgba(255, 255, 200, 0.65), 0 35px 50px rgba(255, 255, 200, 0.18)',  // Cola vertical balanceada
         }}
       />
     </>
   );
 });
 
-// Nuevo componente para olas inferiores etéreas
+// Componente híbrido para olas inferiores: etéreo y realista con animación suave
 const WavesLayer = React.memo(() => (
   <motion.div
-    animate={{ y: [0, -5, 0] }} // Movimiento sutil de olas
-    transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-    className="absolute bottom-0 left-0 right-0 h-1/3 overflow-hidden"
+    animate={{ y: [0, -4, 0] }}  // Movimiento equilibrado
+    transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
+    className="absolute bottom-0 left-0 right-0 h-1/4 overflow-hidden"
     style={{
-      background: 'linear-gradient(to top, rgba(0, 150, 200, 0.4), transparent 80%)',
-      maskImage: 'url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxkZWZzPjxwYXR0ZXJuIGlkPSJ3YXZlIiB3aWR0aD0iMTAwIiBoZWlnaHQ9IjUwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48cGF0aCBkPSJNMCAwQzUgMCAxMCAxMCAxNSAwQzIwIDAgMjUgMCAzMCAxMEMzNSAwIDQwIDAgNDUgMEM1MCAwIDU1IDAgNjAgMTBDNjUgMCA3MCAwIDc1IDBDODAgMCA4NSAwIDkwIDBDOTUgMCAxMDAgMCAxMDAgMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ0cmFuc3BhcmVudCIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCN3YXZlKSIvPjwvc3ZnPg==")', // Máscara SVG simple para olas
+      background: 'linear-gradient(to top, rgba(0, 150, 200, 0.35), transparent 70%)',
+      maskImage: 'url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxkZWZzPjxwYXR0ZXJuIGlkPSJ3YXZlIiB3aWR0aD0iODAiIGhlaWdodD0iNDAiIHBhdHRlcm5Vbml0cz0idXNlclNwYWNlT25Vc2UiPjxwYXRoIGQ9Ik0wIDBDNCAwIDggOCA4MCAwQzEyIDAgMTYgMCAyMCA4QzI0IDAgMjggMCAzMiA4QzM2IDAgNDAgMCA0NCA4QzQ4IDAgNTIgMCA1NiA4QzYwIDAgNjQgMCA2OCA4QzcyIDAgNzYgMCA4MCAwIiBmaWxsPSJub25lIiBzdHJva2U9InRyYW5zcGFyZW50Ii8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI3dhdmUpIi8+PC9zdmc+")',  // Máscara SVG refinada para olas más realistas
     }}
   >
     <motion.div
-      animate={{ x: [0, -100, 0] }}
-      transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+      animate={{ x: [0, -80, 0] }}
+      transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
       className="absolute inset-0"
       style={{
-        background: 'repeating-linear-gradient(to right, transparent 0%, rgba(0, 150, 200, 0.2) 50%, transparent 100%)',
-        backgroundSize: '200% 100%',
+        background: 'repeating-linear-gradient(to right, transparent 0%, rgba(0, 150, 200, 0.18) 50%, transparent 100%)',
+        backgroundSize: '180% 100%',  // Balance para movimiento fluido
       }}
     />
   </motion.div>
@@ -168,47 +167,46 @@ const WavesLayer = React.memo(() => (
 export const SkyBackground = React.memo(() => {
   return (
     <div className="fixed inset-0 z-0 overflow-hidden">
-      {/* Fondo base con gradiente mejorado para azul oscuro a verde-azulado */}
+      {/* Fondo base híbrido: imagen realista de Unsplash con gradiente balanceado */}
       <div 
         className="absolute inset-0 bg-cover bg-center"
         style={{
           backgroundImage: 'url("https://images.unsplash.com/photo-1534796636912-3b95b3ab5986?ixlib=rb-1.2.1&auto=format&fit=crop&w=2942&q=80")',
         }}
       >
-        <div className="absolute inset-0 bg-gradient-to-b from-[#001133] via-[#002255] to-[#003366]/80" /> {/* Gradiente ajustado */}
+        <div className="absolute inset-0 bg-gradient-to-b from-blue-900/20 via-blue-700/15 to-emerald-500/10" />  {/* Gradiente ajustado para realismo y suavidad */}
       </div>
       
-      {/* Capa de atmósfera dinámica con más profundidad */}
+      {/* Capa de atmósfera dinámica: balanceada para profundidad sin sobrecarga */}
       <motion.div
-        animate={{ opacity: [0.15, 0.3, 0.15] }}
-        transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
+        animate={{ opacity: [0.18, 0.32, 0.18] }}
+        transition={{ duration: 16, repeat: Infinity, ease: "easeInOut" }}
         className="absolute inset-0"
         style={{
           background: `
-            radial-gradient(ellipse 600px 300px at 35% 25%, rgba(59, 130, 246, 0.25) 0%, transparent 75%),
-            radial-gradient(ellipse 500px 250px at 65% 45%, rgba(99, 102, 241, 0.2) 0%, transparent 75%)
+            radial-gradient(ellipse 550px 275px at 32% 22%, rgba(59, 130, 246, 0.22) 0%, transparent 72%),
+            radial-gradient(ellipse 450px 225px at 68% 48%, rgba(99, 102, 241, 0.18) 0%, transparent 72%)
           `
         }}
       />
       
-      {/* Nebulosas optimizadas */}
+      {/* Nebulosas híbridas */}
       <NebulaLayer />
       
-      {/* Estrellas optimizadas */}
+      {/* Estrellas híbridas */}
       <StarsLayer />
       
-      {/* Cometas/meteoros optimizados */}
+      {/* Cometas/meteoros híbridos */}
       <CometLayer />
       
-      {/* Nueva capa de olas inferiores */}
+      {/* Olas inferiores híbridas */}
       <WavesLayer />
       
-      {/* Resplandor del horizonte mejorado */}
+      {/* Resplandor del horizonte balanceado */}
       <div 
-        className="absolute bottom-0 left-0 right-0 h-32 pointer-events-none"
+        className="absolute bottom-0 left-0 right-0 h-28 pointer-events-none"
         style={{
-          background: 'linear-gradient(to top, rgba(16, 185, 129, 0.2), transparent)',
-          boxShadow: '0 -20px 40px rgba(16, 185, 129, 0.1)',
+          background: 'linear-gradient(to top, rgba(16, 185, 129, 0.18), transparent)',
         }}
       />
     </div>
