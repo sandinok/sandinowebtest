@@ -1,17 +1,20 @@
 // src/components/WindowManager.tsx
-import React, { memo } from 'react';
+import React, { memo, useMemo } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { useWindows } from '../context/WindowContext';
 import { Window } from './Window';
 
-// Memoizamos el componente para evitar renders innecesarios
+// Componente ultra-optimizado con memoización profunda y renderizado eficiente
 export const WindowManager = memo(() => {
   const { windows } = useWindows();
 
-  // Filtramos y ordenamos las ventanas por z-index para una renderización eficiente
-  const visibleWindows = windows
-    .filter(window => window.isOpen && !window.isMinimized)
-    .sort((a, b) => a.zIndex - b.zIndex); // Renderizar en orden de z-index
+  // Memoizamos el filtrado y ordenación para evitar cálculos en cada render
+  const visibleWindows = useMemo(() => 
+    windows
+      .filter(w => w.isOpen && !w.isMinimized)
+      .sort((a, b) => a.zIndex - b.zIndex), // Orden por z-index para stacking natural
+    [windows]
+  );
 
   return (
     <AnimatePresence mode="wait">
