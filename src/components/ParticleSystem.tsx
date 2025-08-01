@@ -8,25 +8,25 @@ export const ParticleSystem = () => {
   const lastTimeRef = useRef<number>(0);
   const prevDimensionsRef = useRef({ width: 0, height: 0 });
 
-  // Configuración mejorada: ajustada para mejor rendimiento, más suavidad y fidelidad a la imagen
+  // Configuración optimizada: valores ajustados para rendimiento y belleza
   const config = {
-    particleCount: 80, // Reducido ligeramente para optimizar rendimiento sin perder densidad
-    baseSpeed: 0.12, // Velocidad ajustada para flotación más natural
-    sizeRange: { min: 2, max: 7 }, // Rangos refinados para variedad
-    layers: 4,
-    meteorChance: 0.015, // Ligeramente reducido para no sobrecargar
+    particleCount: 60, // Reducido para fluidez, manteniendo densidad visual
+    baseSpeed: 0.1, // Velocidad más suave para movimiento etéreo
+    sizeRange: { min: 1.5, max: 6 }, // Rangos más finos para partículas delicadas
+    layers: 3, // Capas reducidas para menos filtrados
+    meteorChance: 0.01, // Baja probabilidad para no sobrecargar
     floatingTypes: ['star', 'note', 'leaf', 'bubble'],
     colors: {
-      star: 'rgba(255, 255, 255, 0.85)',
-      note: 'rgba(255, 220, 100, 0.75)',
-      leaf: 'rgba(100, 255, 150, 0.65)',
-      bubble: 'rgba(150, 200, 255, 0.55)',
-      meteor: 'rgba(255, 255, 200, 0.95)'
+      star: 'rgba(255, 255, 255, 0.9)',
+      note: 'rgba(255, 220, 100, 0.8)',
+      leaf: 'rgba(100, 255, 150, 0.7)',
+      bubble: 'rgba(150, 200, 255, 0.6)',
+      meteor: 'rgba(255, 255, 200, 1)'
     },
-    glowBlur: 5 // Para efectos de brillo sutil
+    glowBlur: 4 // Brillo sutil optimizado
   };
 
-  // Crear partícula con mejoras en inicialización
+  // Crear partícula simplificada
   const createParticle = (layer: number) => {
     const type = Math.random() < config.meteorChance 
       ? 'meteor' 
@@ -38,15 +38,15 @@ export const ParticleSystem = () => {
     return {
       x: Math.random() * (prevDimensionsRef.current.width || window.innerWidth),
       y: isMeteor ? -10 : Math.random() * (prevDimensionsRef.current.height || window.innerHeight),
-      vx: (Math.random() - 0.5) * config.baseSpeed * layerFactor * (isMeteor ? 5 : 1),
-      vy: (Math.random() * 0.5 + 0.5) * config.baseSpeed * layerFactor * (isMeteor ? 7 : 1),
+      vx: (Math.random() - 0.5) * config.baseSpeed * layerFactor * (isMeteor ? 4 : 1),
+      vy: (Math.random() * 0.5 + 0.5) * config.baseSpeed * layerFactor * (isMeteor ? 6 : 1),
       size: Math.random() * (config.sizeRange.max - config.sizeRange.min) + config.sizeRange.min,
-      opacity: Math.random() * 0.4 + 0.4,
+      opacity: Math.random() * 0.3 + 0.5,
       layer,
       type,
       rotation: Math.random() * Math.PI * 2,
-      rotationSpeed: (Math.random() - 0.5) * 0.008,
-      pulseSpeed: Math.random() * 0.004 + 0.002,
+      rotationSpeed: (Math.random() - 0.5) * 0.006,
+      pulseSpeed: Math.random() * 0.003 + 0.0015,
       pulsePhase: Math.random() * Math.PI * 2,
       trail: isMeteor ? [] : null
     };
@@ -61,7 +61,7 @@ export const ParticleSystem = () => {
     }
   };
 
-  // Dibujar partículas con glow y formas refinadas
+  // Dibujar partículas optimizado: menos operaciones por tipo
   const drawParticle = (ctx: CanvasRenderingContext2D, p: any, pulse: number) => {
     ctx.save();
     ctx.globalAlpha = p.opacity;
@@ -75,59 +75,70 @@ export const ParticleSystem = () => {
     ctx.shadowColor = color;
     ctx.shadowBlur = config.glowBlur;
 
-    if (p.type === 'star') {
-      const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, size * 1.2);
-      gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
-      gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-      ctx.fillStyle = gradient;
-      ctx.beginPath();
-      ctx.arc(0, 0, size, 0, Math.PI * 2);
-      ctx.fill();
-    } else if (p.type === 'note') {
-      ctx.beginPath();
-      ctx.ellipse(0, 0, size / 2, size * 0.8, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.moveTo(size / 2, 0);
-      ctx.lineTo(size / 2, -size * 1.2);
-      ctx.strokeStyle = color;
-      ctx.lineWidth = size / 5;
-      ctx.stroke();
-    } else if (p.type === 'leaf') {
-      ctx.beginPath();
-      ctx.moveTo(0, -size * 0.8);
-      ctx.quadraticCurveTo(size / 2, 0, 0, size * 0.8);
-      ctx.quadraticCurveTo(-size / 2, 0, 0, -size * 0.8);
-      ctx.fill();
-    } else if (p.type === 'bubble') {
-      const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, size);
-      gradient.addColorStop(0, 'rgba(255, 255, 255, 0.3)');
-      gradient.addColorStop(1, color);
-      ctx.fillStyle = gradient;
-      ctx.beginPath();
-      ctx.arc(0, 0, size, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(-size / 4, -size / 4, size / 4, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-      ctx.fill();
-    } else if (p.type === 'meteor') {
-      ctx.beginPath();
-      ctx.arc(0, 0, size / 2, 0, Math.PI * 2);
-      ctx.fill();
-
-      if (p.trail && p.trail.length > 0) {
-        const gradient = ctx.createLinearGradient(0, 0, -p.vx * 8, -p.vy * 8);
-        gradient.addColorStop(0, 'rgba(255, 255, 200, 0.95)');
-        gradient.addColorStop(1, 'rgba(255, 255, 200, 0)');
-        ctx.strokeStyle = gradient;
-        ctx.lineWidth = size / 3;
+    switch (p.type) {
+      case 'star': {
+        const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, size);
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+        gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        ctx.fillStyle = gradient;
         ctx.beginPath();
-        ctx.moveTo(0, 0);
-        p.trail.forEach((point: {x: number, y: number}) => {
-          ctx.lineTo(point.x - p.x, point.y - p.y);
-        });
+        ctx.arc(0, 0, size, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+      }
+      case 'note': {
+        ctx.beginPath();
+        ctx.ellipse(0, 0, size / 2, size * 0.7, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(size / 2, 0);
+        ctx.lineTo(size / 2, -size);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = size / 6;
         ctx.stroke();
+        break;
+      }
+      case 'leaf': {
+        ctx.beginPath();
+        ctx.moveTo(0, -size * 0.7);
+        ctx.quadraticCurveTo(size / 2, 0, 0, size * 0.7);
+        ctx.quadraticCurveTo(-size / 2, 0, 0, -size * 0.7);
+        ctx.fill();
+        break;
+      }
+      case 'bubble': {
+        const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, size);
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 0.2)');
+        gradient.addColorStop(1, color);
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(0, 0, size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(-size / 5, -size / 5, size / 5, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+        ctx.fill();
+        break;
+      }
+      case 'meteor': {
+        ctx.beginPath();
+        ctx.arc(0, 0, size / 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        if (p.trail && p.trail.length > 0) {
+          const gradient = ctx.createLinearGradient(0, 0, -p.vx * 6, -p.vy * 6);
+          gradient.addColorStop(0, 'rgba(255, 255, 200, 0.9)');
+          gradient.addColorStop(1, 'rgba(255, 255, 200, 0)');
+          ctx.strokeStyle = gradient;
+          ctx.lineWidth = size / 4;
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          p.trail.forEach((point: {x: number, y: number}) => {
+            ctx.lineTo(point.x - p.x, point.y - p.y);
+          });
+          ctx.stroke();
+        }
+        break;
       }
     }
 
@@ -135,7 +146,7 @@ export const ParticleSystem = () => {
     ctx.restore();
   };
 
-  // Actualizar partículas con wrap mejorado y generación suave
+  // Actualizar partículas optimizado: filtrado eficiente, trail más corto
   const updateParticles = (deltaTime: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -149,15 +160,15 @@ export const ParticleSystem = () => {
       if (p.type === 'meteor') {
         if (!p.trail) p.trail = [];
         p.trail.push({ x: p.x, y: p.y });
-        if (p.trail.length > 8) p.trail.shift();
-        if (p.y > canvas.height + p.size * 2 || p.x < -p.size * 2 || p.x > canvas.width + p.size * 2) {
+        if (p.trail.length > 6) p.trail.shift(); // Trail más corto para menos dibujo
+        if (p.y > canvas.height + p.size || p.x < -p.size || p.x > canvas.width + p.size) {
           return false;
         }
       } else {
-        if (p.x < -p.size * 2) p.x = canvas.width + p.size * 2;
-        if (p.x > canvas.width + p.size * 2) p.x = -p.size * 2;
-        if (p.y < -p.size * 2) p.y = canvas.height + p.size * 2;
-        if (p.y > canvas.height + p.size * 2) p.y = -p.size * 2;
+        if (p.x < -p.size) p.x = canvas.width + p.size;
+        if (p.x > canvas.width + p.size) p.x = -p.size;
+        if (p.y < -p.size) p.y = canvas.height + p.size;
+        if (p.y > canvas.height + p.size) p.y = -p.size;
       }
       return true;
     });
@@ -168,7 +179,7 @@ export const ParticleSystem = () => {
     }
   };
 
-  // Animación principal con orden optimizado (update antes de draw)
+  // Animación principal: clear mínimo, waves simplificadas
   const animate = (time: number) => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
@@ -177,28 +188,29 @@ export const ParticleSystem = () => {
     const deltaTime = lastTimeRef.current ? Math.min((time - lastTimeRef.current) / 16.67, 2) : 1;
     lastTimeRef.current = time;
 
-    // Actualizar primero para dibujar con posiciones frescas
     updateParticles(deltaTime);
 
-    // Fondo degradado
+    // Fondo degradado con alpha bajo para fade suave en lugar de clear full
+    ctx.globalAlpha = 0.05; // Fade sutil para trails naturales sin clear pesado
     const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
     gradient.addColorStop(0, '#001133');
-    gradient.addColorStop(0.6, '#002255');
+    gradient.addColorStop(0.5, '#002255');
     gradient.addColorStop(1, '#003366');
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.globalAlpha = 1;
 
-    // Olas etéreas con múltiples capas para profundidad
+    // Waves optimizadas: 2 capas en lugar de 3, menos puntos en loop
     ctx.save();
-    const waveLayers = [0.3, 0.2, 0.1]; // Opacidades para capas
+    const waveLayers = [0.25, 0.15]; // Capas reducidas
     waveLayers.forEach((opacity, index) => {
       ctx.fillStyle = `rgba(0, 150, 200, ${opacity})`;
       ctx.beginPath();
-      ctx.moveTo(0, canvas.height * (0.75 + index * 0.05));
-      for (let x = 0; x < canvas.width; x++) {
-        const y = canvas.height * (0.75 + index * 0.05) + 
-          Math.sin(x * 0.01 + time * 0.001 + index) * 25 + 
-          Math.sin(x * 0.005 + time * 0.0005 + index) * 15;
+      ctx.moveTo(0, canvas.height * (0.8 + index * 0.04));
+      for (let x = 0; x < canvas.width; x += 10) { // Step de 10px para menos lineTo calls
+        const y = canvas.height * (0.8 + index * 0.04) + 
+          Math.sin(x * 0.008 + time * 0.0008 + index) * 20 + 
+          Math.sin(x * 0.004 + time * 0.0004 + index) * 12;
         ctx.lineTo(x, y);
       }
       ctx.lineTo(canvas.width, canvas.height);
@@ -208,48 +220,51 @@ export const ParticleSystem = () => {
     });
     ctx.restore();
 
-    // Dibujar partículas por capas
+    // Dibujar partículas: filter una vez por capa
     for (let layer = 1; layer <= config.layers; layer++) {
-      particlesRef.current
-        .filter(p => p.layer === layer)
-        .forEach(p => {
-          const pulse = 1 + Math.sin(p.pulsePhase) * 0.12;
-          drawParticle(ctx, p, pulse);
-        });
+      const layerParticles = particlesRef.current.filter(p => p.layer === layer);
+      layerParticles.forEach(p => {
+        const pulse = 1 + Math.sin(p.pulsePhase) * 0.1;
+        drawParticle(ctx, p, pulse);
+      });
     }
 
     animationRef.current = requestAnimationFrame(animate);
   };
 
-  // Inicialización con manejo de resize mejorado
+  // Inicialización: resize throttled, init solo una vez
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    let resizeTimeout: NodeJS.Timeout;
     const resizeCanvas = () => {
-      const newWidth = window.innerWidth;
-      const newHeight = window.innerHeight;
-      const oldWidth = prevDimensionsRef.current.width || newWidth;
-      const oldHeight = prevDimensionsRef.current.height || newHeight;
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => {
+        const newWidth = window.innerWidth;
+        const newHeight = window.innerHeight;
+        const oldWidth = prevDimensionsRef.current.width || newWidth;
+        const oldHeight = prevDimensionsRef.current.height || newHeight;
 
-      canvas.width = newWidth;
-      canvas.height = newHeight;
+        canvas.width = newWidth;
+        canvas.height = newHeight;
 
-      const scaleX = newWidth / oldWidth;
-      const scaleY = newHeight / oldHeight;
+        const scaleX = newWidth / oldWidth;
+        const scaleY = newHeight / oldHeight;
 
-      particlesRef.current.forEach(p => {
-        p.x *= scaleX;
-        p.y *= scaleY;
-        if (p.trail) {
-          p.trail.forEach((point: {x: number, y: number}) => {
-            point.x *= scaleX;
-            point.y *= scaleY;
-          });
-        }
-      });
+        particlesRef.current.forEach(p => {
+          p.x *= scaleX;
+          p.y *= scaleY;
+          if (p.trail) {
+            p.trail.forEach(point => {
+              point.x *= scaleX;
+              point.y *= scaleY;
+            });
+          }
+        });
 
-      prevDimensionsRef.current = { width: newWidth, height: newHeight };
+        prevDimensionsRef.current = { width: newWidth, height: newHeight };
+      }, 100); // Throttle resize para evitar spam
     };
 
     prevDimensionsRef.current = { width: window.innerWidth, height: window.innerHeight };
