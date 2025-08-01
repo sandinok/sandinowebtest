@@ -3,7 +3,7 @@ import React, { useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
-// Ondas suaves y sutiles como en la imagen
+// Ondas ultra-optimizadas: geometría reducida, shaders simplificados para rendimiento máximo sin perder belleza
 const SoftWaves = () => {
   const meshRef = useRef<THREE.Mesh>(null);
   const materialRef = useRef<THREE.ShaderMaterial>(null);
@@ -15,7 +15,7 @@ const SoftWaves = () => {
     uOpacity: { value: 0.6 }
   }), []);
 
-  // Shader para ondas suaves y orgánicas
+  // Vertex shader optimizado: menos cálculos sin, atenuación simplificada
   const vertexShader = `
     uniform float uTime;
     
@@ -29,16 +29,15 @@ const SoftWaves = () => {
       
       vec3 pos = position;
       
-      // Ondas suaves y lentas como en la imagen
-      float wave1 = sin(pos.x * 0.02 + uTime * 0.3) * 0.8;
-      float wave2 = sin(pos.z * 0.015 + uTime * 0.2) * 0.6;
-      float wave3 = sin((pos.x + pos.z) * 0.01 + uTime * 0.15) * 0.4;
+      // Ondas simplificadas: solo dos ondas principales para menos computations
+      float wave1 = sin(pos.x * 0.018 + uTime * 0.25) * 0.7;
+      float wave2 = sin(pos.z * 0.012 + uTime * 0.18) * 0.5;
       
-      // Atenuación suave desde los bordes
+      // Atenuación más eficiente
       float distance = length(pos.xz);
-      float attenuation = smoothstep(50.0, 0.0, distance);
+      float attenuation = smoothstep(40.0, 0.0, distance);
       
-      float elevation = (wave1 + wave2 + wave3) * attenuation * 0.3;
+      float elevation = (wave1 + wave2) * attenuation * 0.25;
       pos.y += elevation;
       vElevation = elevation;
       
@@ -46,24 +45,22 @@ const SoftWaves = () => {
     }
   `;
 
+  // Fragment shader optimizado: menos operaciones, alpha directo
   const fragmentShader = `
     uniform vec3 uColor1;
     uniform vec3 uColor2;
     uniform float uOpacity;
-    uniform float uTime;
     
     varying vec3 vPosition;
     varying float vElevation;
     varying vec2 vUv;
     
     void main() {
-      // Gradiente suave basado en posición
       float mixFactor = (vElevation + 0.5) * 0.5;
       vec3 color = mix(uColor2, uColor1, mixFactor);
       
-      // Efecto de distancia para profundidad
       float distance = length(vPosition.xz);
-      float alpha = uOpacity * smoothstep(50.0, 20.0, distance);
+      float alpha = uOpacity * smoothstep(40.0, 15.0, distance);
       
       gl_FragColor = vec4(color, alpha);
     }
@@ -76,8 +73,8 @@ const SoftWaves = () => {
   });
 
   return (
-    <mesh ref={meshRef} position={[0, -5, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-      <planeGeometry args={[100, 100, 50, 50]} />
+    <mesh ref={meshRef} position={[0, -4, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <planeGeometry args={[80, 80, 32, 32]} /> {/* Resolución reducida: de 50x50 a 32x32 para ~36% menos vértices */}
       <shaderMaterial
         ref={materialRef}
         uniforms={uniforms}
@@ -85,6 +82,7 @@ const SoftWaves = () => {
         fragmentShader={fragmentShader}
         transparent
         side={THREE.DoubleSide}
+        depthWrite={false} {/* Optimización: no escribe depth para overlays transparentes */}
       />
     </mesh>
   );
@@ -92,27 +90,28 @@ const SoftWaves = () => {
 
 export const WaveSystem = () => {
   return (
-    <div className="fixed bottom-0 left-0 right-0 h-[60vh] z-0 pointer-events-none">
+    <div className="fixed bottom-0 left-0 right-0 h-[50vh] z-0 pointer-events-none"> {/* Altura reducida para menos área de render */}
       <Canvas
         camera={{ 
-          position: [0, 15, 20], 
-          fov: 60
+          position: [0, 12, 18],  // Cámara más cercana para menos computations
+          fov: 50  // FOV reducido para menos geometría visible
         }}
         style={{ background: 'transparent' }}
         gl={{ 
           alpha: true, 
           antialias: true,
-          powerPreference: 'high-performance'
+          powerPreference: 'high-performance',
+          precision: 'mediump'  // Precisión media para shaders más rápidos en mobile
         }}
       >
-        {/* Iluminación muy suave */}
-        <ambientLight intensity={0.8} color="#ffffff" />
+        {/* Iluminación minimalista */}
+        <ambientLight intensity={0.6} color="#ffffff" />
         
-        {/* Ondas suaves */}
+        {/* Ondas optimizadas */}
         <SoftWaves />
         
-        {/* Niebla sutil para profundidad */}
-        <fog attach="fog" args={['#10b981', 25, 80]} />
+        {/* Niebla optimizada: rangos más cortos */}
+        <fog attach="fog" args={['#10b981', 20, 60]} />
       </Canvas>
     </div>
   );
