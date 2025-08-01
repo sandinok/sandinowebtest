@@ -7,20 +7,19 @@ export const LoadingScreen = () => {
   const [isMounted, setIsMounted] = useState(true);
 
   useEffect(() => {
-    // Simulación de progreso con curva natural
+    // Simulación de progreso con curva más natural y suave
     const timer = setInterval(() => {
       setProgress(prev => {
         if (prev >= 100) {
           clearInterval(timer);
-          // Pequeño delay para mostrar 100%
-          setTimeout(() => setIsMounted(false), 500);
+          setTimeout(() => setIsMounted(false), 600); // Delay extendido para transición fluida
           return 100;
         }
-        // Incrementos más pequeños al final para suavidad
-        const increment = prev > 90 ? 0.5 : prev > 70 ? 1 : 2;
+        // Incrementos variables para sensación orgánica
+        const increment = prev > 95 ? 0.3 : prev > 80 ? 0.8 : prev > 50 ? 1.5 : 2.5;
         return Math.min(prev + increment, 100);
       });
-    }, 100);
+    }, 80); // Intervalo ajustado para animación más fluida
 
     return () => clearInterval(timer);
   }, []);
@@ -31,111 +30,116 @@ export const LoadingScreen = () => {
     <motion.div
       initial={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.7, ease: "easeInOut" }}
-      className="fixed inset-0 bg-gradient-to-br from-slate-900 via-blue-900 to-emerald-900 flex items-center justify-center z-50 overflow-hidden"
+      transition={{ duration: 0.8, ease: "easeInOut" }}
+      className="fixed inset-0 bg-gradient-to-br from-[#001133] via-[#002255] to-[#003366] flex items-center justify-center z-50 overflow-hidden"
     >
-      <div className="text-center w-full max-w-xs px-4 relative">
-        {/* Logo con microanimaciones */}
+      {/* Panel central con glassmorphism: efecto de vidrio esmerilado líquido como en iOS/Figma */}
+      <motion.div
+        initial={{ scale: 0.95, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="relative bg-white/5 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl p-8 max-w-sm w-full mx-4"
+        style={{
+          boxShadow: '0 4px 30px rgba(0, 0, 0, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.1)', // Efecto líquido con sombras suaves
+        }}
+      >
+        {/* Logo con animación fluida y gradiente dinámico */}
         <motion.div
-          initial={{ y: 20, opacity: 0 }}
+          initial={{ y: 30, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ 
-            duration: 0.8,
-            delay: 0.1,
-            ease: "easeOut"
-          }}
-          className="mb-12"
+          transition={{ duration: 0.9, delay: 0.2, ease: "easeOut" }}
+          className="mb-10 text-center"
         >
           <motion.h1 
-            className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-300 via-cyan-200 to-emerald-300 tracking-wider mb-2"
+            className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-200 via-cyan-100 to-emerald-200 tracking-wide mb-3"
             animate={{ 
               backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
             }}
             transition={{ 
-              duration: 6, 
+              duration: 5, 
               repeat: Infinity, 
               ease: "linear" 
             }}
-            style={{ backgroundSize: "200% 200%" }}
+            style={{ backgroundSize: "300% 300%" }} // Gradiente más amplio para efecto líquido
           >
             Sandino
           </motion.h1>
           <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: "40px" }}
-            transition={{ duration: 0.6, delay: 0.5 }}
-            className="h-0.5 bg-gradient-to-r from-blue-400 to-emerald-400 mx-auto rounded-full"
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
+            transition={{ duration: 0.7, delay: 0.6, ease: "easeOut" }}
+            className="h-0.5 bg-gradient-to-r from-blue-300/50 to-emerald-300/50 mx-auto rounded-full"
+            style={{ width: '60px' }}
           />
         </motion.div>
         
-        {/* Barra de progreso con efectos refinados */}
+        {/* Barra de progreso con glassmorphism y brillo líquido */}
         <div className="mb-8 relative">
-          <div className="h-1 bg-white/10 rounded-full overflow-hidden backdrop-blur-sm">
+          <div className="h-1.5 bg-white/5 backdrop-blur-sm border border-white/10 rounded-full overflow-hidden">
             <motion.div
-              className="h-full bg-gradient-to-r from-blue-400 via-cyan-300 to-emerald-400 rounded-full relative"
+              className="h-full bg-gradient-to-r from-blue-300/70 via-cyan-200/70 to-emerald-300/70 rounded-full relative"
               initial={{ width: 0 }}
               animate={{ width: `${progress}%` }}
               transition={{ 
-                duration: 0.3,
+                duration: 0.4,
                 ease: "easeOut"
               }}
             >
-              {/* Efecto de brillo animado */}
+              {/* Brillo líquido animado */}
               <motion.div
-                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent rounded-full"
+                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent rounded-full"
                 animate={{
-                  x: ['-100%', '100%'],
+                  x: ['-200%', '200%'],
                 }}
                 transition={{
-                  duration: 1.5,
+                  duration: 2,
                   repeat: Infinity,
-                  repeatType: "loop",
                   ease: "easeInOut"
                 }}
               />
             </motion.div>
           </div>
           
-          {/* Indicador de porcentaje con microanimación */}
+          {/* Porcentaje con efecto de aparición suave */}
           <motion.div
-            className="absolute -top-7 right-0 text-blue-300 text-sm font-medium tracking-wider"
-            initial={{ opacity: 0, scale: 0.8 }}
+            className="absolute -top-8 right-0 text-cyan-200 text-sm font-medium tracking-wider"
+            initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.7, type: "spring", stiffness: 300, damping: 20 }}
+            transition={{ delay: 0.8, type: "spring", stiffness: 250, damping: 18 }}
           >
             {Math.round(progress)}%
           </motion.div>
         </div>
         
-        {/* Texto de carga con transiciones suaves */}
+        {/* Texto de carga con transiciones fluidas y glassmorphism sutil */}
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.9 }}
-          className="h-6 mb-12"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.0, duration: 0.5 }}
+          className="h-6 mb-10 text-center"
         >
           <AnimatePresence mode="wait">
             <motion.p
-              key={Math.floor(progress / 33)} // Cambia cada 33%
-              initial={{ opacity: 0, y: 10 }}
+              key={Math.floor(progress / 33)}
+              initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.4, ease: "easeInOut" }}
-              className="text-blue-300 text-sm font-light tracking-wide"
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.5, ease: "easeInOut" }}
+              className="text-cyan-100/80 text-sm font-light tracking-wide bg-white/5 backdrop-blur-sm rounded-full px-4 py-1 inline-block"
             >
-              {progress < 33 && "Preparando experiencia..."}
-              {progress >= 33 && progress < 66 && "Cargando contenido..."}
-              {progress >= 66 && "¡Casi listo!"}
+              {progress < 33 && "Iniciando viaje creativo..."}
+              {progress >= 33 && progress < 66 && "Cargando inspiración..."}
+              {progress >= 66 && "¡Bienvenido al universo Sandino!"}
             </motion.p>
           </AnimatePresence>
         </motion.div>
         
-        {/* Efecto de partículas flotantes sutiles */}
+        {/* Partículas flotantes con efecto líquido/glass: más suaves y etéreas */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          {[...Array(12)].map((_, i) => (
+          {[...Array(15)].map((_, i) => (  // Aumentado ligeramente para densidad equilibrada
             <motion.div
               key={i}
-              className="absolute rounded-full bg-gradient-to-br from-blue-300/20 to-cyan-300/10"
+              className="absolute rounded-full bg-gradient-to-br from-blue-200/10 to-cyan-200/5 border border-white/5"
               initial={{ 
                 x: Math.random() * window.innerWidth,
                 y: Math.random() * window.innerHeight,
@@ -143,25 +147,27 @@ export const LoadingScreen = () => {
                 scale: 0
               }}
               animate={{ 
-                y: [null, -30 - Math.random() * 30, -60 - Math.random() * 30],
-                opacity: [0, 0.5, 0],
-                scale: [0, 1, 0],
-                x: `+=${(Math.random() - 0.5) * 20}`
+                y: [null, -40 - Math.random() * 40, -80 - Math.random() * 40],
+                opacity: [0, 0.6, 0],
+                scale: [0, 1.2, 0],
+                x: `+=${(Math.random() - 0.5) * 30}`
               }}
               transition={{ 
-                duration: 4 + Math.random() * 3,
-                delay: Math.random() * 2,
+                duration: 5 + Math.random() * 4,
+                delay: Math.random() * 2.5,
                 repeat: Infinity,
-                repeatType: "reverse"
+                repeatType: "reverse",
+                ease: "easeInOut"
               }}
               style={{
-                width: `${Math.random() * 5 + 2}px`,
-                height: `${Math.random() * 5 + 2}px`,
+                width: `${Math.random() * 6 + 3}px`,
+                height: `${Math.random() * 6 + 3}px`,
+                backdropFilter: 'blur(2px)', // Efecto glass sutil en partículas
               }}
             />
           ))}
         </div>
-      </div>
+      </motion.div>
     </motion.div>
   );
 };
