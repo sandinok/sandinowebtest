@@ -1,9 +1,8 @@
 // src/pages/Index.tsx
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, Suspense } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { SkyBackground } from '../components/SkyBackground';
 import { ParticleSystem } from '../components/ParticleSystem';
-import { WaveSystem } from '../components/WaveSystem';
 import { MainTitle } from '../components/MainTitle';
 import { GlassDock } from '../components/GlassDock';
 import { WindowManager } from '../components/WindowManager';
@@ -12,41 +11,41 @@ import { LoadingScreen } from '../components/LoadingScreen';
 import { WindowProvider } from '../context/WindowContext';
 import { SoundProvider } from '../context/SoundContext';
 
-const Index = () => {
+// Optional fallback while Suspense resolves any lazy components (kept minimal)
+const Fallback: React.FC = () => <div className="fixed inset-0" aria-hidden />;
+
+const Index: React.FC = () => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
 
-  // Simular carga real de recursos
+  // Simulate controlled loading to show the loading screen briefly, then release UI.
   const simulateLoading = useCallback(() => {
     let progress = 0;
     const interval = setInterval(() => {
-      progress += Math.random() * 15;
+      progress += 12 + Math.random() * 14; // faster ramp
       if (progress >= 100) {
         progress = 100;
         clearInterval(interval);
-        setTimeout(() => setIsLoaded(true), 300);
+        // small grace to ensure first paints are ready
+        setTimeout(() => setIsLoaded(true), 200);
       }
       setLoadingProgress(progress);
-    }, 100);
-
+    }, 90);
     return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
-    // Iniciar simulación de carga
     const cleanup = simulateLoading();
-    
-    // Pre-cargar componentes pesados
-    const preloadComponents = async () => {
-      // Aquí podrías precargar assets críticos
-      // await Promise.all([
-      //   import('../components/WaveSystem'),
-      //   import('../components/ParticleSystem')
-      // ]);
-    };
-    
-    preloadComponents().catch(console.error);
-    
+
+    // Optionally warm up non-critical chunks in background (commented; enable if needed)
+    // const warmup = async () => {
+    //   await Promise.allSettled([
+    //     import('../components/WindowManager'),
+    //     import('../components/MusicPlayer'),
+    //   ]);
+    // };
+    // warmup();
+
     return cleanup;
   }, [simulateLoading]);
 
@@ -59,26 +58,19 @@ const Index = () => {
               <LoadingScreen key="loading" progress={loadingProgress} />
             ) : (
               <div key="main" className="relative min-h-screen">
-                {/* Sky background - capa más baja */}
+                {/* Background (WebGL) */}
                 <SkyBackground />
-                
-                {/* Efecto de olas 3D - detrás de todo excepto fondo */}
-                <WaveSystem />
-                
-                {/* Sistema de partículas - capa media */}
+
+                {/* Particles (Canvas2D), visually balanced for sky-dawn */}
                 <ParticleSystem />
-                
-                {/* Título principal - capa superior */}
-                <MainTitle />
-                
-                {/* Dock de aplicaciones - capa superior */}
-                <GlassDock />
-                
-                {/* Gestor de ventanas - capa superior */}
-                <WindowManager />
-                
-                {/* Reproductor de música - capa flotante */}
-                <MusicPlayer />
+
+                {/* Foreground UI */}
+                <Suspense fallback={<Fallback />}>
+                  <MainTitle />
+                  <GlassDock />
+                  <WindowManager />
+                  <MusicPlayer />
+                </Suspense>
               </div>
             )}
           </AnimatePresence>
