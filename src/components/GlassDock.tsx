@@ -1,17 +1,18 @@
 // src/components/GlassDock.tsx
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Palette, Youtube, Play, Lightbulb, User, Mail } from "lucide-react";
 import { useSounds } from "../context/SoundContext";
 import { useWindows } from "../context/WindowContext";
 
 /*
-IMPORTANT BUILD FIX:
-- Removed @react-three/fiber and drei to avoid the "LinearEncoding" mismatch error from three/drei.
-- Replaced the shader tile with a lightweight CSS-based liquid-glass approximation to keep the dock stable in production.
-- No eval, no heavy bundles. Fully SSR/CSR safe with Vite.
-
-If you later want WebGL tiles, we’ll mount a single off-DOM canvas and sample it as a texture, but for now this is bulletproof.
+GlassDock optimizado:
+- Centrado robusto: wrapper full-width con flex y transform para evitar desalineaciones en layouts complejos.
+- Tamaños responsivos: iconos y gaps ajustados por breakpoints.
+- Hit-area accesible: botones con aria-label.
+- Animaciones suaves y ligeras (spring corto, hover moderado).
+- Shimmer local (sin global CSS), sin memory leaks.
+- Fondo glass más realista con capa de reflexión controlada.
 */
 
 type IconType = React.ComponentType<{ className?: string; size?: number }>;
@@ -27,34 +28,47 @@ interface DockItem {
 
 const DockTile: React.FC<{
   gradient: string;
+  sizeClass?: string; // permite variar tamaño con breakpoints
   children: React.ReactNode;
-}> = ({ gradient, children }) => {
+}> = ({ gradient, sizeClass = "w-12 h-12 md:w-14 md:h-14", children }) => {
   return (
-    <div className="relative w-14 h-14 rounded-2xl overflow-hidden border border-white/20">
-      {/* Liquid glass faux background (fast, GPU-friendly) */}
+    <div
+      className={`relative ${sizeClass} rounded-2xl overflow-hidden border border-white/20 shadow-[0_8px_20px_-4px_rgba(0,0,0,0.22)]`}
+      style={{ WebkitTapHighlightColor: "transparent" }}
+    >
+      {/* Glass base */}
       <div
         className="absolute inset-0"
         style={{
           background: `
-            radial-gradient(120% 120% at 20% 0%, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.2) 40%, rgba(255,255,255,0.08) 100%),
-            linear-gradient(135deg, rgba(255,255,255,0.18), rgba(255,255,255,0.08))
+            radial-gradient(120% 120% at 20% 0%, rgba(255,255,255,0.42) 0%, rgba(255,255,255,0.18) 40%, rgba(255,255,255,0.08) 100%),
+            linear-gradient(135deg, rgba(255,255,255,0.16), rgba(255,255,255,0.07))
           `,
           backdropFilter: "blur(18px) saturate(150%)",
           WebkitBackdropFilter: "blur(18px) saturate(150%)",
-          boxShadow:
-            "inset 0 2px 2px rgba(255,255,255,0.45), inset 0 -2px 2px rgba(0,0,0,0.1)",
         }}
       />
-      {/* Soft moving highlight to mimic “liquid” */}
+      {/* Soft gradient glow (static, subtle) */}
       <div
         className="absolute -inset-1 opacity-25"
         style={{
           background: gradient,
-          filter: "blur(16px)",
-          animation: "lg-shimmer 3.2s ease-in-out infinite",
+          filter: "blur(14px)",
         }}
       />
-      {/* Content (icon) */}
+      {/* Shimmer beam (CSS keyframes injected once) */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            "linear-gradient(120deg, transparent 35%, rgba(255,255,255,0.18) 48%, rgba(255,255,255,0.08) 52%, transparent 65%)",
+          backgroundSize: "250% 100%",
+          animation: "dockShimmer 5.2s linear infinite",
+          mixBlendMode: "screen",
+          borderRadius: "inherit",
+        }}
+      />
+      {/* Content */}
       <div className="relative z-10 w-full h-full flex items-center justify-center">
         {children}
       </div>
@@ -62,22 +76,29 @@ const DockTile: React.FC<{
   );
 };
 
-// Local keyframes for shimmer without touching global CSS
-const style = document.createElement("style");
-style.innerHTML = `
-@keyframes lg-shimmer {
-  0% { transform: translate(-8%, -8%) scale(1); opacity: .2; }
-  50% { transform: translate(6%, 8%) scale(1.05); opacity: .35; }
-  100% { transform: translate(-8%, -8%) scale(1); opacity: .2; }
-}
-`;
-if (typeof document !== "undefined") {
+// Inject local keyframes once
+let injected = false;
+const injectKeyframes = () => {
+  if (injected || typeof document === "undefined") return;
+  const style = document.createElement("style");
+  style.innerHTML = `
+    @keyframes dockShimmer {
+      0% { background-position: 200% 0%; }
+      100% { background-position: -200% 0%; }
+    }
+  `;
   document.head.appendChild(style);
-}
+  injected = true;
+};
 
 export const GlassDock: React.FC = () => {
   const { playSound } = useSounds();
   const { openWindow } = useWindows();
+  const dockRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    injectKeyframes();
+  }, []);
 
   const dockItems: DockItem[] = useMemo(
     () => [
@@ -146,116 +167,136 @@ export const GlassDock: React.FC = () => {
 
   return (
     <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0, y: 100 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: 100 }}
-        transition={{
-          duration: 0.6,
-          type: "spring",
-          stiffness: 150,
-          damping: 22,
-        }}
-        className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50"
+      <div
+        className="fixed inset-x-0 bottom-6 md:bottom-8 z-50"
+        style={{ pointerEvents: "none" }}
       >
-        <div className="relative">
-          {/* Reflection */}
-          <div className="absolute top-full left-0 right-0 h-16 overflow-hidden pointer-events-none">
-            <div
-              className="w-full h-16 rounded-[2.5rem] opacity-25"
-              style={{
-                background:
-                  "linear-gradient(to bottom, rgba(255,255,255,0.35), transparent)",
-                transform: "scaleY(-1) translateY(2px)",
-                filter: "blur(6px)",
-                maskImage: "linear-gradient(to bottom, black 30%, transparent)",
-                WebkitMaskImage:
-                  "linear-gradient(to bottom, black 30%, transparent)",
-              }}
-            />
-          </div>
-
-          {/* Dock container */}
-          <motion.div
-            className="relative px-6 py-5 rounded-[2.5rem] border border-white/20 backdrop-blur-3xl"
-            style={{
-              background: `
-                radial-gradient(80% 70% at 50% 0%, 
-                  rgba(255, 255, 255, 0.4) 0%, 
-                  rgba(255, 255, 255, 0.2) 50%, 
-                  rgba(255, 255, 255, 0.1) 100%
-                ),
-                linear-gradient(135deg, 
-                  rgba(255, 255, 255, 0.15) 0%, 
-                  rgba(255, 255, 255, 0.05) 100%
-                )`,
-              boxShadow: `
-                0 25px 50px -12px rgba(0, 0, 0, 0.25),
-                inset 0 0 0 1px rgba(255, 255, 255, 0.2),
-                inset 0 8px 12px -4px rgba(255, 255, 255, 0.3),
-                inset 0 -8px 12px -4px rgba(0, 0, 0, 0.1)
-              `,
-            }}
-            whileHover={{ y: -8 }}
-            transition={{ type: "spring", stiffness: 300, damping: 25 }}
-          >
-            {/* Glow cap */}
-            <div
-              className="absolute inset-0 rounded-[2.5rem] opacity-60 pointer-events-none"
-              style={{
-                background: `
-                  radial-gradient(
-                    60% 60% at 50% 0%, 
-                    rgba(255, 255, 255, 0.7) 0%, 
-                    transparent 100%
-                  )`,
-                filter: "blur(2px)",
-              }}
-            />
-
-            {/* Items */}
-            <div className="flex items-end gap-3 relative z-10">
-              {dockItems.map((item, index) => (
-                <motion.div
-                  key={item.id}
-                  className="relative"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{
-                    duration: 0.5,
-                    delay: index * 0.05,
-                    type: "spring",
-                    stiffness: 200,
-                    damping: 20,
-                  }}
-                  whileHover={{ y: -20, zIndex: 10 }}
-                >
-                  <motion.div
-                    className="relative cursor-pointer"
-                    whileTap={{ scale: 0.92 }}
-                    onClick={() => handleIconClick(item)}
-                  >
-                    {/* Hover glow */}
-                    <motion.div
-                      className="absolute inset-0 rounded-2xl opacity-0"
-                      whileHover={{ opacity: 0.7, scale: 1.25 }}
-                      transition={{ duration: 0.25 }}
-                      style={{ background: item.gradient, filter: "blur(16px)" }}
-                    />
-                    {/* Tile */}
-                    <DockTile gradient={item.gradient}>
-                      <item.icon
-                        className="text-white drop-shadow-lg"
-                        size={24}
-                      />
-                    </DockTile>
-                  </motion.div>
-                </motion.div>
-              ))}
+        <motion.div
+          ref={dockRef}
+          initial={{ opacity: 0, y: 100 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 100 }}
+          transition={{
+            duration: 0.55,
+            type: "spring",
+            stiffness: 140,
+            damping: 20,
+          }}
+          className="mx-auto"
+          style={{
+            maxWidth: "min(92vw, 680px)",
+            pointerEvents: "auto",
+          }}
+        >
+          <div className="relative">
+            {/* Reflection (subtle, masked) */}
+            <div className="absolute top-full left-0 right-0 h-14 md:h-16 overflow-hidden pointer-events-none">
+              <div
+                className="w-full h-full rounded-[2rem] opacity-25"
+                style={{
+                  background:
+                    "linear-gradient(to bottom, rgba(255,255,255,0.34), transparent)",
+                  transform: "scaleY(-1) translateY(2px)",
+                  filter: "blur(6px)",
+                  maskImage:
+                    "linear-gradient(to bottom, rgba(0,0,0,1) 20%, transparent)",
+                  WebkitMaskImage:
+                    "linear-gradient(to bottom, rgba(0,0,0,1) 20%, transparent)",
+                }}
+              />
             </div>
-          </motion.div>
-        </div>
-      </motion.div>
+
+            {/* Dock container */}
+            <motion.div
+              className="relative rounded-[2rem] border border-white/20 backdrop-blur-3xl"
+              style={{
+                padding: "12px 14px",
+                background: `
+                  radial-gradient(80% 70% at 50% 0%, 
+                    rgba(255, 255, 255, 0.38) 0%, 
+                    rgba(255, 255, 255, 0.18) 50%, 
+                    rgba(255, 255, 255, 0.10) 100%
+                  ),
+                  linear-gradient(135deg, 
+                    rgba(255, 255, 255, 0.14) 0%, 
+                    rgba(255, 255, 255, 0.06) 100%
+                  )`,
+                boxShadow: `
+                  0 18px 40px -14px rgba(0,0,0,0.35),
+                  inset 0 0 0 1px rgba(255,255,255,0.18),
+                  inset 0 8px 12px -6px rgba(255,255,255,0.26),
+                  inset 0 -8px 12px -6px rgba(0,0,0,0.12)
+                `,
+              }}
+              whileHover={{ y: -6 }}
+              transition={{ type: "spring", stiffness: 280, damping: 24 }}
+            >
+              {/* Top glow cap */}
+              <div
+                className="absolute inset-0 rounded-[2rem] pointer-events-none"
+                style={{
+                  background:
+                    "radial-gradient(60% 50% at 50% 0%, rgba(255,255,255,0.65) 0%, transparent 100%)",
+                  filter: "blur(2px)",
+                  opacity: 0.55,
+                }}
+              />
+
+              {/* Items row */}
+              <div className="flex items-end justify-center gap-2.5 md:gap-3 relative z-10">
+                {dockItems.map((item, index) => (
+                  <motion.button
+                    key={item.id}
+                    aria-label={item.label}
+                    className="relative outline-none focus-visible:ring-2 focus-visible:ring-white/40 rounded-2xl"
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{
+                      duration: 0.45,
+                      delay: index * 0.04 + 0.05,
+                      type: "spring",
+                      stiffness: 220,
+                      damping: 18,
+                    }}
+                    whileHover={{ y: -16, scale: 1.03, zIndex: 10 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => handleIconClick(item)}
+                    style={{ WebkitTapHighlightColor: "transparent" }}
+                  >
+                    {/* Hover halo */}
+                    <motion.div
+                      className="absolute -inset-2 rounded-3xl opacity-0"
+                      whileHover={{ opacity: 0.6, scale: 1.08 }}
+                      transition={{ duration: 0.2 }}
+                      style={{
+                        background: item.gradient,
+                        filter: "blur(18px)",
+                      }}
+                    />
+                    <DockTile gradient={item.gradient} sizeClass="w-12 h-12 sm:w-13 sm:h-13 md:w-14 md:h-14">
+                      <item.icon className="text-white drop-shadow-lg" size={22} />
+                    </DockTile>
+                    {/* Label tooltip-like (mobile-hidden) */}
+                    <div className="absolute left-1/2 -translate-x-1/2 top-[calc(100%+8px)] hidden md:block">
+                      <div
+                        className="px-2 py-1 rounded-md text-xs text-white/90"
+                        style={{
+                          background:
+                            "linear-gradient(180deg, rgba(20,20,24,0.6), rgba(20,20,24,0.4))",
+                          boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
+                          backdropFilter: "blur(8px)",
+                        }}
+                      >
+                        {item.label}
+                      </div>
+                    </div>
+                  </motion.button>
+                ))}
+              </div>
+            </motion.div>
+          </div>
+        </motion.div>
+      </div>
     </AnimatePresence>
   );
 };
