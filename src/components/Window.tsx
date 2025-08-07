@@ -249,3 +249,54 @@ export const Window = memo(({ window }: WindowProps) => {
               bottomLeft: { cursor: 'nesw-resize' },
               topRight: { cursor: 'nesw-resize' },
               topLeft: { cursor: 'nwse-resize' },
+              left: { cursor: 'ew-resize' },
+              right: { cursor: 'ew-resize' },
+              top: { cursor: 'ns-resize' },
+              bottom: { cursor: 'ns-resize' },
+            } as any}
+            style={{
+              // durante drag/resize removemos transiciones
+              transition: (nodeRef.current?.dataset.state === 'idle') ? 'box-shadow 0.2s ease' : 'none',
+            }}
+          >
+            {/* Header */}
+            <div className="window-header px-4 py-2.5 flex items-center justify-between cursor-move bg-gradient-to-r from-black/24 to-black/14 border-b border-white/10 select-none">
+              <h3 className="font-semibold text-white text-sm md:text-base truncate max-w-[240px] pr-2">
+                {window.title}
+              </h3>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => minimizeWindow(window.id)}
+                  className="w-6 h-6 rounded-full flex items-center justify-center bg-yellow-400/85 hover:bg-yellow-400 transition-colors"
+                  aria-label="Minimizar"
+                >
+                  <Minus size={12} className="text-yellow-900" />
+                </button>
+                <button
+                  onClick={() => maximizeWindow(window.id)}
+                  className="w-6 h-6 rounded-full flex items-center justify-center bg-green-400/85 hover:bg-green-400 transition-colors"
+                  aria-label="Maximizar"
+                >
+                  <Square size={12} className="text-green-900" />
+                </button>
+                <button
+                  onClick={() => closeWindow(window.id)}
+                  className="w-6 h-6 rounded-full flex items-center justify-center bg-red-400/90 hover:bg-red-500 transition-colors"
+                  aria-label="Cerrar"
+                >
+                  <X size={12} className="text-red-950" />
+                </button>
+              </div>
+            </div>
+
+            {/* Contenido */}
+            <div className="flex-1 overflow-auto custom-scrollbar p-2 will-change-scroll">
+              <WindowContent id={window.id} />
+            </div>
+          </Resizable>
+        </motion.div>
+      </Draggable>
+    </AnimatePresence>
+  );
+});
+Window.displayName = 'Window';
