@@ -10,22 +10,21 @@ import { LoadingScreen } from '../components/LoadingScreen';
 import { WindowProvider } from '../context/WindowContext';
 import { SoundProvider } from '../context/SoundContext';
 
-// Optional fallback while Suspense resolves any lazy components (kept minimal)
+// Minimal fallback for Suspense
 const Fallback: React.FC = () => <div className="fixed inset-0" aria-hidden />;
 
 const Index: React.FC = () => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
 
-  // Simulate controlled loading to show the loading screen briefly, then release UI.
+  // Controlled loading sequence
   const simulateLoading = useCallback(() => {
     let progress = 0;
     const interval = setInterval(() => {
-      progress += 12 + Math.random() * 14; // faster ramp
+      progress += 12 + Math.random() * 14;
       if (progress >= 100) {
         progress = 100;
         clearInterval(interval);
-        // small grace to ensure first paints are ready
         setTimeout(() => setIsLoaded(true), 200);
       }
       setLoadingProgress(progress);
@@ -35,16 +34,6 @@ const Index: React.FC = () => {
 
   useEffect(() => {
     const cleanup = simulateLoading();
-
-    // Optionally warm up non-critical chunks in background (commented; enable if needed)
-    // const warmup = async () => {
-    //   await Promise.allSettled([
-    //     import('../components/WindowManager'),
-    //     import('../components/MusicPlayer'),
-    //   ]);
-    // };
-    // warmup();
-
     return cleanup;
   }, [simulateLoading]);
 
@@ -59,9 +48,6 @@ const Index: React.FC = () => {
               <div key="main" className="relative min-h-screen">
                 {/* Background (WebGL) */}
                 <SkyBackground />
-
-                {/* Particles (Canvas2D), visually balanced for sky-dawn */}
-                <ParticleSystem />
 
                 {/* Foreground UI */}
                 <Suspense fallback={<Fallback />}>
