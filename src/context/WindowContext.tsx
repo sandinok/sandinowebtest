@@ -1,206 +1,206 @@
 // src/context/WindowContext.tsx
-import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback, useMemo } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  ReactNode,
+  useEffect,
+  useCallback,
+  useMemo,
+} from 'react';
 
-interface Window {
+type Vec2 = { x: number; y: number };
+type Size2 = { width: number; height: number };
+
+export interface WindowModel {
   id: string;
   title: string;
   isOpen: boolean;
   isMinimized: boolean;
   isMaximized: boolean;
-  position: { x: number; y: number };
-  size: { width: number; height: number };
+  position: Vec2;
+  size: Size2;
   zIndex: number;
   minimizedPosition?: number;
 }
 
 interface WindowContextType {
-  windows: Window[];
+  windows: WindowModel[];
   openWindow: (id: string, title: string) => void;
   closeWindow: (id: string) => void;
   minimizeWindow: (id: string) => void;
   maximizeWindow: (id: string) => void;
   restoreWindow: (id: string) => void;
   bringToFront: (id: string) => void;
-  updateWindowPosition: (id: string, position: { x: number; y: number }) => void;
-  updateWindowSize: (id: string, size: { width: number; height: number }) => void;
-  getMinimizedWindows: () => Window[];
+  updateWindowPosition: (id: string, position: Vec2) => void;
+  updateWindowSize: (id: string, size: Size2) => void;
+  getMinimizedWindows: () => WindowModel[];
 }
 
 const WindowContext = createContext<WindowContextType | undefined>(undefined);
 
 export const useWindows = () => {
-  const context = useContext(WindowContext);
-  if (!context) {
-    throw new Error('useWindows must be used within a WindowProvider');
-  }
-  return context;
+  const ctx = useContext(WindowContext);
+  if (!ctx) throw new Error('useWindows must be used within a WindowProvider');
+  return ctx;
 };
 
-// Función para generar posición inicial de ventanas
-const generateInitialPosition = (index: number, windowWidth: number, windowHeight: number) => ({
-  x: Math.max(50, Math.min(window.innerWidth - windowWidth - 50, 100 + index * 30)),
-  y: Math.max(50, Math.min(window.innerHeight - windowHeight - 50, 100 + index * 30))
-});
+// posición inicial en cascada, clamped a viewport
+const generateInitialPosition = (index: number, windowWidth: number, windowHeight: number): Vec2 => {
+  const vw = typeof window !== 'undefined' ? window.innerWidth : 1280;
+  const vh = typeof window !== 'undefined' ? window.innerHeight : 800;
+  const x = Math.max(32, Math.min(vw - windowWidth - 32, 96 + index * 28));
+  const y = Math.max(24, Math.min(vh - windowHeight - 24, 96 + index * 28));
+  return { x, y };
+};
+
+const STORAGE_KEY = 'sandino-windows';
+const BASE_Z = 100;
 
 export const WindowProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [windows, setWindows] = useState<Window[]>(() => {
-    // Estado inicial desde localStorage o vacío
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('sandino-windows');
-      if (saved) {
-        try {
-          return JSON.parse(saved);
-        } catch (e) {
-          console.error('Error parsing saved windows:', e);
-        }
-      }
+  // cargar estado (safe parse)
+  const [windows, setWindows] = useState<WindowModel[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw) as WindowModel[];
+      // saneamiento mínimo de datos
+      return Array.isArray(parsed) ? parsed.map(w => ({
+        id: String(w.id),
+        title: String(w.title ?? ''),
+        isOpen: !!w.isOpen,
+        isMinimized: !!w.isMinimized,
+        isMaximized: !!w.isMaximized,
+        position: w.position ?? { x: 120, y: 120 },
+        size: w.size ?? { width: 600, height: 400 },
+        zIndex: Number.isFinite(w.zIndex) ? w.zIndex : BASE_Z,
+        minimizedPosition: w.minimizedPosition,
+      })) : [];
+    } catch {
+      return [];
     }
-    return [];
   });
-  
-  const [maxZIndex, setMaxZIndex] = useState(100);
 
-  // Guardar en localStorage cuando cambian las ventanas
+  // track del zIndex máximo (evita recorrer en cada bringToFront)
+  const [maxZIndex, setMaxZIndex] = useState<number>(() => {
+    if (!windows.length) return BASE_Z;
+    return Math.max(BASE_Z, ...windows.map(w => w.zIndex));
+  });
+
+  // persistir cambios de ventanas (throttle implícito por batch react)
   useEffect(() => {
-    localStorage.setItem('sandino-windows', JSON.stringify(windows));
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(windows));
+    } catch {
+      // noop si storage está lleno o deshabilitado
+    }
   }, [windows]);
 
-  // Actualizar maxZIndex cuando cambian las ventanas
+  // sincronizar maxZIndex cuando cambian ventanas (si vinieron del storage)
   useEffect(() => {
-    const highestZIndex = Math.max(...windows.map(w => w.zIndex), 100);
-    setMaxZIndex(highestZIndex);
+    const mz = windows.length ? Math.max(BASE_Z, ...windows.map(w => w.zIndex)) : BASE_Z;
+    if (mz !== maxZIndex) setMaxZIndex(mz);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [windows]);
 
-  // Obtener ventanas minimizadas (memoizado para performance)
+  const bumpZ = useCallback(() => setMaxZIndex(z => z + 1), []);
+
   const getMinimizedWindows = useCallback(() => {
+    // no memoizamos el resultado (se usa poco y es O(n))
     return windows.filter(w => w.isOpen && w.isMinimized);
   }, [windows]);
 
-  // Abrir o restaurar una ventana
   const openWindow = useCallback((id: string, title: string) => {
     setWindows(prev => {
-      const existingIndex = prev.findIndex(w => w.id === id);
-      
-      if (existingIndex !== -1) {
-        // Si existe, restaurarla
-        const existing = prev[existingIndex];
-        const updatedWindow = {
-          ...existing,
-          isOpen: true,
-          isMinimized: false,
-          zIndex: maxZIndex + 1
-        };
-        
-        const newWindows = [...prev];
-        newWindows[existingIndex] = updatedWindow;
-        return newWindows;
+      const i = prev.findIndex(w => w.id === id);
+      if (i !== -1) {
+        // restaurar si ya existe
+        const next = [...prev];
+        const w = next[i];
+        next[i] = { ...w, isOpen: true, isMinimized: false, zIndex: maxZIndex + 1 };
+        return next;
       }
-      
-      // Crear nueva ventana
-      const newWindow: Window = {
+      // crear nueva
+      const openCount = prev.filter(w => w.isOpen).length;
+      const size = { width: 600, height: 400 };
+      const position = generateInitialPosition(openCount, size.width, size.height);
+      const nw: WindowModel = {
         id,
         title,
         isOpen: true,
         isMinimized: false,
         isMaximized: false,
-        position: generateInitialPosition(prev.filter(w => w.isOpen).length, 600, 400),
-        size: { width: 600, height: 400 },
+        position,
+        size,
         zIndex: maxZIndex + 1,
       };
-      
-      return [...prev, newWindow];
+      return [...prev, nw];
     });
-    
-    setMaxZIndex(prev => prev + 1);
-  }, [maxZIndex]);
+    bumpZ();
+  }, [maxZIndex, bumpZ]);
 
-  // Cerrar una ventana
   const closeWindow = useCallback((id: string) => {
-    setWindows(prev => {
-      const windowToClose = prev.find(w => w.id === id);
-      if (!windowToClose || !windowToClose.isOpen) return prev;
-      
-      return prev.map(w => 
-        w.id === id ? { ...w, isOpen: false, isMinimized: false } : w
-      );
-    });
+    setWindows(prev => prev.map(w => (w.id === id ? { ...w, isOpen: false, isMinimized: false } : w)));
   }, []);
 
-  // Minimizar una ventana
   const minimizeWindow = useCallback((id: string) => {
     setWindows(prev => {
-      const windowToMinimize = prev.find(w => w.id === id);
-      if (!windowToMinimize || !windowToMinimize.isOpen || windowToMinimize.isMinimized) {
-        return prev;
-      }
-      
-      return prev.map(w => 
-        w.id === id ? { ...w, isMinimized: true } : w
-      );
+      const w = prev.find(x => x.id === id);
+      if (!w || !w.isOpen || w.isMinimized) return prev;
+      return prev.map(x => (x.id === id ? { ...x, isMinimized: true } : x));
     });
   }, []);
 
-  // Maximizar/restaurar una ventana
   const maximizeWindow = useCallback((id: string) => {
-    setWindows(prev => 
-      prev.map(w => 
-        w.id === id ? { ...w, isMaximized: !w.isMaximized } : w
-      )
-    );
+    setWindows(prev => prev.map(w => (w.id === id ? { ...w, isMaximized: !w.isMaximized } : w)));
   }, []);
 
-  // Restaurar una ventana minimizada
   const restoreWindow = useCallback((id: string) => {
-    setWindows(prev => {
-      const windowToRestore = prev.find(w => w.id === id);
-      if (!windowToRestore || !windowToRestore.isOpen) return prev;
-      
-      return prev.map(w => 
-        w.id === id ? { 
-          ...w, 
-          isMinimized: false,
-          zIndex: maxZIndex + 1
-        } : w
-      );
-    });
-    
-    setMaxZIndex(prev => prev + 1);
-  }, [maxZIndex]);
+    setWindows(prev => prev.map(w => (w.id === id ? { ...w, isMinimized: false, zIndex: maxZIndex + 1 } : w)));
+    bumpZ();
+  }, [maxZIndex, bumpZ]);
 
-  // Traer ventana al frente
   const bringToFront = useCallback((id: string) => {
-    setWindows(prev => {
-      const windowToFocus = prev.find(w => w.id === id);
-      if (!windowToFocus || !windowToFocus.isOpen) return prev;
-      
-      return prev.map(w => 
-        w.id === id ? { ...w, zIndex: maxZIndex + 1 } : w
-      );
-    });
-    
-    setMaxZIndex(prev => prev + 1);
-  }, [maxZIndex]);
+    setWindows(prev => prev.map(w => (w.id === id ? { ...w, zIndex: maxZIndex + 1 } : w)));
+    bumpZ();
+  }, [maxZIndex, bumpZ]);
 
-  // Actualizar posición de ventana
-  const updateWindowPosition = useCallback((id: string, position: { x: number; y: number }) => {
-    setWindows(prev => 
-      prev.map(w => 
-        w.id === id ? { ...w, position } : w
-      )
-    );
+  const updateWindowPosition = useCallback((id: string, position: Vec2) => {
+    setWindows(prev => prev.map(w => (w.id === id ? { ...w, position } : w)));
   }, []);
 
-  // Actualizar tamaño de ventana
-  const updateWindowSize = useCallback((id: string, size: { width: number; height: number }) => {
-    setWindows(prev => 
-      prev.map(w => 
-        w.id === id ? { ...w, size } : w
-      )
-    );
+  const updateWindowSize = useCallback((id: string, size: Size2) => {
+    setWindows(prev => prev.map(w => (w.id === id ? { ...w, size } : w)));
   }, []);
 
-  // Valor del contexto optimizado con useMemo
-  const contextValue = useMemo(() => ({
+  // Corrección: clamp de ventanas al redimensionar viewport (opcional)
+  useEffect(() => {
+    const onResize = () => {
+      setWindows(prev => {
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        let changed = false;
+        const next = prev.map(w => {
+          if (!w.isOpen || w.isMaximized) return w;
+          const maxX = Math.max(0, vw - w.size.width);
+          const maxY = Math.max(0, vh - w.size.height);
+          const nx = Math.min(Math.max(0, w.position.x), maxX);
+          const ny = Math.min(Math.max(0, w.position.y), maxY);
+          if (nx !== w.position.x || ny !== w.position.y) {
+            changed = true;
+            return { ...w, position: { x: nx, y: ny } };
+          }
+          return w;
+        });
+        return changed ? next : prev;
+      });
+    };
+    window.addEventListener('resize', onResize, { passive: true });
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  const contextValue = useMemo<WindowContextType>(() => ({
     windows,
     openWindow,
     closeWindow,
@@ -210,7 +210,7 @@ export const WindowProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     bringToFront,
     updateWindowPosition,
     updateWindowSize,
-    getMinimizedWindows
+    getMinimizedWindows,
   }), [
     windows,
     openWindow,
@@ -221,7 +221,7 @@ export const WindowProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     bringToFront,
     updateWindowPosition,
     updateWindowSize,
-    getMinimizedWindows
+    getMinimizedWindows,
   ]);
 
   return (
