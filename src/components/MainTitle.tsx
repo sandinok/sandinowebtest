@@ -13,17 +13,17 @@ export const MainTitle: React.FC<MainTitleProps> = ({
   subtitle = 'Digital Artist & Content Creator',
   className = '',
 }) => {
-  // Precompute sparkles once to avoid layout jitter
+  // Sparkles precomputed (few, light, very smooth)
   const sparkles = useMemo(
     () =>
-      Array.from({ length: 8 }).map((_, i) => ({
+      Array.from({ length: 6 }).map((_, i) => ({
         id: i,
         x: Math.random() * 100,
-        dx: (Math.random() - 0.5) * 8, // smaller drift to prevent glitch feel
-        dur: 2.4 + Math.random() * 0.9,
-        delay: 1 + Math.random() * 1.2,
-        hue: 200 + Math.floor(Math.random() * 24),
-        a: 0.24 + Math.random() * 0.18,
+        dx: (Math.random() - 0.5) * 6,
+        dur: 3.4 + Math.random() * 1.0,
+        delay: 1.0 + Math.random() * 1.5,
+        hue: 195 + Math.floor(Math.random() * 20), // soft cyan-blue
+        a: 0.18 + Math.random() * 0.16,
       })),
     []
   );
@@ -33,75 +33,68 @@ export const MainTitle: React.FC<MainTitleProps> = ({
       className={[
         'absolute left-1/2 -translate-x-1/2 text-center z-30 px-4',
         'top-16 md:top-20 lg:top-24',
-        'will-change-transform', // hint GPU
+        'will-change-transform',
         className,
       ].join(' ')}
     >
       <motion.div
-        initial={{ opacity: 0, y: -18 }}
+        initial={{ opacity: 0, y: -14 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: 'easeOut', delay: 0.2 }}
         className="relative inline-block"
       >
-        {/* Ambient glow (stabilized, no background animation swapping) */}
+        {/* Ambient glow (single layer, subtle breathing) */}
         <motion.div
           aria-hidden
-          className="absolute -inset-6 md:-inset-8 rounded-full pointer-events-none"
+          className="absolute -inset-8 rounded-full pointer-events-none"
           style={{
             background:
-              'radial-gradient(60% 50% at 50% 25%, rgba(99,179,237,0.22) 0%, rgba(129,140,248,0.18) 40%, rgba(16,185,129,0.12) 70%, transparent 100%)',
-            filter: 'blur(20px)',
+              'radial-gradient(60% 50% at 50% 25%, rgba(125, 196, 255, 0.18) 0%, rgba(167, 139, 250, 0.14) 40%, rgba(52, 211, 153, 0.10) 70%, transparent 100%)',
+            filter: 'blur(22px)',
           }}
-          animate={{ opacity: [0.5, 0.65, 0.5], scale: [1, 1.02, 1] }}
-          transition={{ duration: 6.5, repeat: Infinity, ease: 'easeInOut' }}
+          animate={{ opacity: [0.5, 0.62, 0.5], scale: [1, 1.015, 1] }}
+          transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
         />
 
-        {/* Title (reduced motion amplitude, background gradient scroll only) */}
+        {/* Title (no vertical bob, only BG scroll — eliminates jitter) */}
         <h1
-          className="text-[52px] sm:text-[68px] md:text-[92px] lg:text-[108px] font-bold mb-3 md:mb-4 select-none leading-none relative"
+          className="text-[48px] sm:text-[64px] md:text-[88px] lg:text-[104px] font-bold mb-3 md:mb-4 select-none leading-none relative"
           style={{
             fontFamily: "'Dancing Script', cursive",
-            WebkitTextStroke: '1px rgba(255,255,255,0.10)',
-            textShadow:
-              '0 6px 24px rgba(0,0,0,0.32), 0 2px 8px rgba(0,0,0,0.28)',
+            WebkitTextStroke: '1px rgba(255,255,255,0.08)',
+            textShadow: '0 5px 22px rgba(0,0,0,0.30), 0 2px 6px rgba(0,0,0,0.26)',
           }}
         >
           <motion.span
             className="bg-clip-text text-transparent inline-block will-change-transform"
             style={{
               backgroundImage:
-                'linear-gradient(90deg, #bfe3fe 0%, #ead7ff 40%, #b7f7d6 80%)',
+                'linear-gradient(90deg, #c9ecff 0%, #eedbff 40%, #bffae1 80%)',
               backgroundSize: '200% 100%',
-              transform: 'translateZ(0)', // eliminate subpixel jitter
+              transform: 'translateZ(0)',
             }}
-            animate={{
-              backgroundPositionX: ['0%', '200%', '0%'],
-            }}
-            transition={{
-              duration: 6,
-              repeat: Infinity,
-              ease: 'linear', // linear avoids easing glitches on BG scroll
-            }}
+            animate={{ backgroundPositionX: ['0%', '200%', '0%'] }}
+            transition={{ duration: 10, repeat: Infinity, ease: 'linear' }}
           >
             {title}
           </motion.span>
         </h1>
 
-        {/* Sheen line (lighter, reduced mask to avoid harsh edges) */}
+        {/* Gentle sheen (very low opacity, long cycle) */}
         <motion.div
           aria-hidden
-          className="absolute inset-x-0 -top-1 bottom-6 md:bottom-8 pointer-events-none"
+          className="absolute inset-x-0 -top-1 bottom-7 md:bottom-9 pointer-events-none"
           style={{
             background:
-              'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.18) 10%, transparent 22%)',
+              'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.12) 10%, transparent 22%)',
             WebkitMaskImage:
-              'radial-gradient(75% 100% at 50% 0%, black 30%, transparent 80%)',
+              'radial-gradient(75% 100% at 50% 0%, black 28%, transparent 80%)',
           }}
           animate={{ backgroundPositionX: ['0%', '200%'] }}
-          transition={{ duration: 7, repeat: Infinity, ease: 'linear' }}
+          transition={{ duration: 9, repeat: Infinity, ease: 'linear' }}
         />
 
-        {/* Sparkles (fewer, smaller, slower) */}
+        {/* Sparkles (few, slow, tiny) */}
         <div className="absolute inset-x-0 -bottom-1 md:-bottom-2 h-12 overflow-visible -z-10 pointer-events-none">
           {sparkles.map((s) => (
             <motion.div
@@ -109,14 +102,14 @@ export const MainTitle: React.FC<MainTitleProps> = ({
               className="absolute rounded-full"
               style={{
                 left: `${s.x}%`,
-                width: '3px',
-                height: '3px',
-                backgroundColor: `hsla(${s.hue},85%,75%,${s.a})`,
-                boxShadow: `0 0 8px hsla(${s.hue},85%,75%,${s.a * 0.85})`,
+                width: '2px',
+                height: '2px',
+                backgroundColor: `hsla(${s.hue},85%,80%,${s.a})`,
+                boxShadow: `0 0 6px hsla(${s.hue},85%,80%,${s.a * 0.9})`,
                 willChange: 'transform, opacity',
               }}
               initial={{ y: 0, opacity: 0 }}
-              animate={{ y: [-10, -20], opacity: [0, 1, 0], x: [0, s.dx] }}
+              animate={{ y: [-8, -16], opacity: [0, 1, 0], x: [0, s.dx] }}
               transition={{
                 duration: s.dur,
                 delay: s.delay,
@@ -129,38 +122,37 @@ export const MainTitle: React.FC<MainTitleProps> = ({
         </div>
       </motion.div>
 
-      {/* Divider (transform-based anim only) */}
+      {/* Divider (transform-only anim, short and smooth) */}
       <motion.div
-        className="mx-auto mb-4 md:mb-5 rounded-full"
+        className="mx-auto mb-3 md:mb-4 rounded-full"
         style={{
-          width: 112,
-          height: 4,
+          width: 104,
+          height: 3,
           background:
-            'linear-gradient(90deg, transparent, rgba(191,219,254,0.82), transparent)',
-          boxShadow: '0 0 18px rgba(191,219,254,0.38)',
+            'linear-gradient(90deg, transparent, rgba(191,219,254,0.75), transparent)',
+          boxShadow: '0 0 14px rgba(191,219,254,0.35)',
           transformOrigin: 'center',
         }}
-        initial={{ scaleX: 0, opacity: 0 }}
+        initial={{ scaleX: 0.5, opacity: 0 }}
         animate={{ scaleX: 1, opacity: 1 }}
-        transition={{ duration: 0.5, delay: 0.45, ease: 'easeOut' }}
+        transition={{ duration: 0.45, delay: 0.4, ease: 'easeOut' }}
       />
 
-      {/* Subtitle (reduced motion) */}
+      {/* Subtitle (tiny lift, quick settle) */}
       <motion.p
-        initial={{ opacity: 0, y: 8 }}
+        initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, delay: 0.55, ease: 'easeOut' }}
-        className="text-base sm:text-lg md:text-xl text-white/95 font-light tracking-wide px-4"
-        style={{ textShadow: '0 2px 8px rgba(0,0,0,0.4)' }}
+        transition={{ duration: 0.4, delay: 0.5, ease: 'easeOut' }}
+        className="text-sm sm:text-base md:text-lg text-white/95 font-light tracking-wide px-4"
+        style={{ textShadow: '0 2px 6px rgba(0,0,0,0.35)' }}
       >
         {subtitle}
       </motion.p>
 
-      {/* Respect reduced motion */}
+      {/* Reduced motion support */}
       <style>{`
         @media (prefers-reduced-motion: reduce) {
-          .will-change-transform { will-change: auto !important; }
-          * { animation-duration: 0.001s !important; animation-iteration-count: 1 !important; transition: none !important; }
+          * { animation: none !important; transition: none !important; }
         }
       `}</style>
     </div>
