@@ -1,397 +1,271 @@
 // src/components/SkyBackground.tsx
-import React, { useMemo } from 'react';
-import { motion } from 'framer-motion';
+import React, { useEffect, useRef } from "react";
 
-// Componente mejorado para estrellas: combinando realismo con animaciones suaves y parallax balanceado
-const StarsLayer = React.memo(() => {
-  const stars = useMemo(() => {
-    return Array.from({ length: 150 }).map((_, i) => ({
-      id: i,
-      left: Math.random() * 100,
-      top: Math.random() * 80,  // Mayor cobertura del cielo
-      size: Math.random() * 2 + 0.3,
-      opacity: Math.random() * 0.8 + 0.2,
-      delay: Math.random() * 10,
-      duration: 3 + Math.random() * 4,
-      layer: Math.floor(Math.random() * 3) + 1,  // Capas para parallax sutil
-      twinkle: Math.random() > 0.7,  // Algunas estrellas parpadean
-    }));
-  }, []);
+// Ultra-compact, optimized WebGL background (no mouse, no capturer, no external deps).
+// Replaces previous Three.js + CCapture setup with a minimal WebGL pipeline.
+// Fullscreen, responsive, and GPU-accelerated. Only one draw call per frame.
 
-  return (
-    <>
-      {stars.map((star) => (
-        <motion.div
-          key={star.id}
-          initial={{ opacity: 0 }}
-          animate={{ 
-            opacity: star.twinkle 
-              ? [0, star.opacity, star.opacity * 0.3, star.opacity, 0] 
-              : [0, star.opacity, 0],
-            y: [0, star.layer * 5],  // Movimiento vertical para profundidad
-            scale: star.twinkle ? [1, 1.2, 1] : 1
-          }}
-          transition={{
-            duration: star.duration,
-            repeat: Infinity,
-            delay: star.delay,
-            ease: "easeInOut"
-          }}
-          className="absolute rounded-full bg-white"
-          style={{
-            left: `${star.left}%`,
-            top: `${star.top}%`,
-            width: `${star.size}px`,
-            height: `${star.size}px`,
-            boxShadow: `0 0 ${star.size * 3}px rgba(255, 255, 255, ${star.opacity * 0.9})`,
-          }}
-        />
-      ))}
-    </>
-  );
-});
+export const SkyBackground: React.FC = () => {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const glRef = useRef<WebGLRenderingContext | null>(null);
+  const programRef = useRef<WebGLProgram | null>(null);
+  const uniformsRef = useRef<{
+    u_time: WebGLUniformLocation | null;
+    u_resolution: WebGLUniformLocation | null;
+    u_noise: WebGLUniformLocation | null;
+  } | null>(null);
+  const texRef = useRef<WebGLTexture | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const startRef = useRef<number>(0);
 
-// Componente mejorado para nebulosas: gradientes más vibrantes con animación etérea
-const NebulaLayer = React.memo(() => (
-  <motion.div
-    animate={{ 
-      opacity: [0.12, 0.25, 0.12],
-      scale: [1, 1.05, 1],
-      rotate: [0, 1, -0.5, 0]  // Rotación suave para naturalidad
-    }}
-    transition={{ 
-      opacity: { duration: 24, repeat: Infinity, ease: "easeInOut" },
-      scale: { duration: 30, repeat: Infinity, ease: "easeInOut" },
-      rotate: { duration: 35, repeat: Infinity, ease: "easeInOut" }
-    }}
-    className="absolute inset-0"
-    style={{
-      background: `
-        radial-gradient(ellipse 700px 350px at 20% 15%, rgba(100, 200, 255, 0.2) 0%, transparent 75%),
-        radial-gradient(ellipse 500px 250px at 80% 60%, rgba(180, 100, 255, 0.15) 0%, transparent 75%),
-        radial-gradient(ellipse 400px 200px at 45% 80%, rgba(16, 185, 129, 0.12) 0%, transparent 75%)
-      `,
-      filter: 'blur(60px)',
-    }}
-  />
-));
+  useEffect(() => {
+    const canvas = canvasRef.current!;
+    const gl =
+      canvas.getContext("webgl", { antialias: false, preserveDrawingBuffer: false }) ||
+      canvas.getContext("experimental-webgl");
+    if (!gl) return;
 
-// Componente mejorado para cometas/meteoros: trayectorias más dinámicas con colas más largas
-const CometLayer = React.memo(() => {
-  const windowWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
-  const windowHeight = typeof window !== 'undefined' ? window.innerHeight : 800;
-  
-  return (
-    <>
-      <motion.div
-        initial={{ x: -150, y: windowHeight * 0.1, opacity: 0 }}
-        animate={{ 
-          x: windowWidth + 150, 
-          y: -windowHeight * 0.1, 
-          opacity: [0, 0.8, 0] 
-        }}
-        transition={{ 
-          duration: 7, 
-          repeat: Infinity, 
-          repeatDelay: 24,
-          ease: "linear"
-        }}
-        className="absolute w-2 h-2 bg-white rounded-full"
-        style={{
-          boxShadow: '0 0 20px rgba(255, 255, 255, 0.8), -30px 30px 60px rgba(255, 255, 255, 0.3)',
-        }}
-      />
-      
-      <motion.div
-        initial={{ x: windowWidth + 150, y: windowHeight * 0.3, opacity: 0 }}
-        animate={{ 
-          x: -250, 
-          y: windowHeight * 0.1, 
-          opacity: [0, 0.7, 0] 
-        }}
-        transition={{ 
-          duration: 9, 
-          repeat: Infinity, 
-          repeatDelay: 30, 
-          delay: 5,
-          ease: "linear"
-        }}
-        className="absolute w-1.5 h-1.5 bg-blue-300 rounded-full"
-        style={{
-          boxShadow: '0 0 20px rgba(100, 200, 255, 0.8), 30px 30px 60px rgba(100, 200, 255, 0.25)',
-        }}
-      />
-      
-      <motion.div
-        initial={{ x: windowWidth * 0.3, y: -100, opacity: 0 }}
-        animate={{ 
-          x: windowWidth * 0.7, 
-          y: windowHeight + 100, 
-          opacity: [0, 0.6, 0] 
-        }}
-        transition={{ 
-          duration: 10, 
-          repeat: Infinity, 
-          repeatDelay: 35,
-          delay: 10,
-          ease: "linear"
-        }}
-        className="absolute w-1.5 h-1.5 bg-yellow-100 rounded-full"
-        style={{
-          boxShadow: '0 0 15px rgba(255, 255, 200, 0.7), 0 40px 60px rgba(255, 255, 200, 0.2)',
-        }}
-      />
-    </>
-  );
-});
+    glRef.current = gl;
 
-// Nuevo componente para burbujas: flotando suavemente con diferentes tamaños y transparencias
-const BubblesLayer = React.memo(() => {
-  const bubbles = useMemo(() => {
-    return Array.from({ length: 15 }).map((_, i) => ({
-      id: i,
-      left: Math.random() * 100,
-      size: Math.random() * 20 + 5,
-      opacity: Math.random() * 0.4 + 0.1,
-      duration: 15 + Math.random() * 20,
-      delay: Math.random() * 10,
-      wobble: Math.random() * 10 - 5,
-    }));
-  }, []);
+    // Vertex shader (full-screen quad)
+    const vsSource = `
+      attribute vec2 a_position;
+      void main() {
+        gl_Position = vec4(a_position, 0.0, 1.0);
+      }
+    `;
 
-  return (
-    <>
-      {bubbles.map((bubble) => (
-        <motion.div
-          key={`bubble-${bubble.id}`}
-          initial={{ y: "100%", opacity: 0 }}
-          animate={{ 
-            y: "-20%", 
-            opacity: [0, bubble.opacity, bubble.opacity, 0],
-            x: [0, bubble.wobble, -bubble.wobble, 0]
-          }}
-          transition={{
-            duration: bubble.duration,
-            repeat: Infinity,
-            delay: bubble.delay,
-            ease: "easeInOut"
-          }}
-          className="absolute rounded-full border border-white/20"
-          style={{
-            left: `${bubble.left}%`,
-            width: `${bubble.size}px`,
-            height: `${bubble.size}px`,
-            background: 'radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.1))',
-          }}
-        />
-      ))}
-    </>
-  );
-});
+    // Fragment shader (optimized variant from provided shader, mouse removed, same visuals)
+    const fsSource = `
+      precision mediump float;
+      uniform vec2 u_resolution;
+      uniform float u_time;
+      uniform sampler2D u_noise;
 
-// Nuevo componente para hojas verdes: cayendo suavemente con rotación
-const LeavesLayer = React.memo(() => {
-  const leaves = useMemo(() => {
-    return Array.from({ length: 8 }).map((_, i) => ({
-      id: i,
-      left: Math.random() * 100,
-      size: Math.random() * 15 + 10,
-      opacity: Math.random() * 0.6 + 0.2,
-      duration: 20 + Math.random() * 15,
-      delay: Math.random() * 15,
-      rotation: Math.random() * 360,
-      sway: Math.random() * 30 - 15,
-    }));
-  }, []);
+      vec3 hash33(vec3 p){ 
+        return texture2D(u_noise, p.xy * p.z * 256.0).rgb;
+      }
+      mat2 rot2(float a){ vec2 v = sin(vec2(1.570796, 0.0) + a); return mat2(v, -v.y, v.x); }
+      float pn(in vec3 p) {
+        vec3 i = floor(p); 
+        p -= i; 
+        p *= p*(3.0 - 2.0*p);
+        p.xy = texture2D(u_noise, (p.xy + i.xy + vec2(37.0, 17.0)*i.z + 0.5)/256.0, -100.0).yx;
+        return mix(p.x, p.y, p.z);
+      }
+      float trigNoise3D(in vec3 p) {
+        float res = 0.0;
+        float n = pn(p*8.0 + u_time*0.1);
+        vec3 t = sin(p*3.14159265 + cos(p*3.14159265+1.57/2.0))*0.5 + 0.5;
+        p = p*1.5 + (t - 1.5);
+        res += (dot(t, vec3(0.333)));
+        t = sin(p.yzx*3.14159265 + cos(p.zxy*3.14159265+1.57/2.0))*0.5 + 0.5;
+        res += (dot(t, vec3(0.333)))*0.7071;    
+        return ((res/1.7071))*0.85 + n*0.15;
+      }
+      float world(vec3 p) {
+        float n = trigNoise3D(p * 0.1) * 10.0;
+        p.y += n;
+        return p.y - 3.0;
+      }
+      vec3 path(float p) {
+        return vec3(sin(p*0.05)*10.0, cos(p*0.3), p);
+      }
 
-  return (
-    <>
-      {leaves.map((leaf) => (
-        <motion.div
-          key={`leaf-${leaf.id}`}
-          initial={{ y: "-10%", opacity: 0, rotate: 0 }}
-          animate={{ 
-            y: "110%", 
-            opacity: [0, leaf.opacity, leaf.opacity, 0],
-            rotate: [0, leaf.rotation, leaf.rotation * 2],
-            x: [0, leaf.sway, -leaf.sway, leaf.sway * 2]
-          }}
-          transition={{
-            duration: leaf.duration,
-            repeat: Infinity,
-            delay: leaf.delay,
-            ease: "easeInOut"
-          }}
-          className="absolute"
-          style={{
-            left: `${leaf.left}%`,
-            width: `${leaf.size}px`,
-            height: `${leaf.size}px`,
-            opacity: leaf.opacity,
-          }}
-        >
-          <svg viewBox="0 0 24 24" fill="rgba(16, 185, 129, 0.8)">
-            <path d="M17,8C8,10 5.9,16.17 3.82,21.34L5.71,22L6.66,19.7C7.14,19.87 7.64,20 8,20C19,20 22,3 22,3C21,5 14,5.25 9,6.25C4,7.25 2,11.5 2,13.5C2,15.5 3.75,17.25 3.75,17.25C7,8 17,8 17,8Z" />
-          </svg>
-        </motion.div>
-      ))}
-    </>
-  );
-});
+      void main() {
+        vec2 aspect = vec2(u_resolution.x/u_resolution.y, 1.0);
+        vec2 uv = (2.0*gl_FragCoord.xy/u_resolution.xy - 1.0)*aspect;
 
-// Nuevo componente para notas musicales: flotando y girando suavemente
-const MusicNotesLayer = React.memo(() => {
-  const notes = useMemo(() => {
-    return Array.from({ length: 6 }).map((_, i) => ({
-      id: i,
-      left: Math.random() * 100,
-      top: Math.random() * 70 + 10,
-      size: Math.random() * 15 + 10,
-      opacity: Math.random() * 0.5 + 0.2,
-      duration: 12 + Math.random() * 8,
-      delay: Math.random() * 5,
-      type: Math.floor(Math.random() * 3), // 0: nota simple, 1: corchea, 2: negra
-    }));
-  }, []);
+        float modtime = u_time * 2.0;
+        vec3 movement = path(modtime);
 
-  const renderNote = (type: number, size: number, opacity: number) => {
-    const color = `rgba(255, 255, 255, ${opacity})`;
-    
-    if (type === 0) {
-      // Nota simple
-      return (
-        <svg width={size} height={size} viewBox="0 0 24 24">
-          <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" fill={color} />
-        </svg>
-      );
-    } else if (type === 1) {
-      // Corchea
-      return (
-        <svg width={size} height={size} viewBox="0 0 24 24">
-          <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6zm-2 16c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z" fill={color} />
-        </svg>
-      );
-    } else {
-      // Negra
-      return (
-        <svg width={size} height={size} viewBox="0 0 24 24">
-          <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" fill={color} />
-          <circle cx="10" cy="17" r="2" fill={color} />
-        </svg>
-      );
+        vec3 lookAt = vec3(0.0, -0.2, 0.0) + path(modtime + 1.0);
+        vec3 camera_position = vec3(0.0, 0.0, -1.0) + movement;
+
+        vec3 forward = normalize(lookAt - camera_position);
+        vec3 right = normalize(vec3(forward.z, 0.0, -forward.x));
+        vec3 up = normalize(cross(forward, right));
+
+        float FOV = 0.8;
+        vec3 ro = camera_position; 
+        vec3 rd = normalize(forward + FOV*uv.x*right + FOV*uv.y*up);
+        rd.xy = rot2(movement.x * 0.04) * rd.xy;
+
+        vec3 lp = vec3(0.0, -10.0, 10.5) + ro;
+
+        float density = 0.0;
+        float dist = 1.0;
+        float travelled = 0.0;
+
+        const float distanceThreshold = 0.3;
+
+        vec3 col = vec3(0.0);
+        vec3 sp;
+
+        for (int i=0; i<64; i++) {
+          if((density > 1.0) || travelled > 80.0) {
+            travelled = 80.0;
+            break;
+          }
+          sp = ro + rd*travelled;
+          dist = world(sp);
+          if (dist < 0.3) dist = 0.25;
+
+          float local_density = (distanceThreshold - dist)*step(dist, distanceThreshold);
+          float weighting = (1.0 - density)*local_density;
+
+          density += weighting*(1.0 - distanceThreshold)*1.0/dist*0.1;
+
+          vec3 ld = lp - sp;
+          float lDist = max(length(ld), 0.001);
+          ld /= lDist;
+          float atten = 1.0/(1.0 + lDist*0.125 + lDist*lDist*0.55);
+
+          col += weighting*atten*1.25;
+
+          travelled += max(dist*0.2, 0.02);
+        }
+        
+        vec3 sunDir = normalize(lp - ro);
+        float sunF = 1.0 - dot(rd, sunDir);
+
+        col = mix(mix(vec3(0.5), vec3(1.0), col * density * 5.0), vec3(0.0), col);
+        col = mix(col, vec3(4.0), (5.0 - density)*0.01*(1.0 + sunF*0.5));
+        col = mix(
+          col, 
+          mix(vec3(0.4, 0.3, 0.2)*3.0, vec3(0.2, 0.4, 0.7)*0.9, sunF*sunF*1.0),
+          travelled*0.01
+        );
+        col *= col*col*col*2.0;
+
+        gl_FragColor = vec4(col, 1.0);
+      }
+    `;
+
+    const compile = (type: number, src: string) => {
+      const sh = gl.createShader(type)!;
+      gl.shaderSource(sh, src);
+      gl.compileShader(sh);
+      if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
+        console.error(gl.getShaderInfoLog(sh));
+        gl.deleteShader(sh);
+        return null;
+      }
+      return sh;
+    };
+
+    const vs = compile(gl.VERTEX_SHADER, vsSource);
+    const fs = compile(gl.FRAGMENT_SHADER, fsSource);
+    if (!vs || !fs) return;
+
+    const program = gl.createProgram()!;
+    gl.attachShader(program, vs);
+    gl.attachShader(program, fs);
+    gl.linkProgram(program);
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+      console.error(gl.getProgramInfoLog(program));
+      gl.deleteProgram(program);
+      return;
     }
-  };
+    gl.useProgram(program);
+    programRef.current = program;
+
+    const quad = new Float32Array([
+      -1, -1,  1, -1,  -1, 1,
+       1, -1,  1,  1,  -1, 1
+    ]);
+    const vbo = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+    gl.bufferData(gl.ARRAY_BUFFER, quad, gl.STATIC_DRAW);
+
+    const locPos = gl.getAttribLocation(program, "a_position");
+    gl.enableVertexAttribArray(locPos);
+    gl.vertexAttribPointer(locPos, 2, gl.FLOAT, false, 0, 0);
+
+    // Noise texture setup
+    const noiseTex = gl.createTexture()!;
+    texRef.current = noiseTex;
+    gl.bindTexture(gl.TEXTURE_2D, noiseTex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+
+    const u_time = gl.getUniformLocation(program, "u_time");
+    const u_resolution = gl.getUniformLocation(program, "u_resolution");
+    const u_noise = gl.getUniformLocation(program, "u_noise");
+    uniformsRef.current = { u_time, u_resolution, u_noise };
+
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = "https://s3-us-west-2.amazonaws.com/s.cdpn.io/982762/noise.png";
+    img.onload = () => {
+      gl.bindTexture(gl.TEXTURE_2D, noiseTex);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+      resize();
+      startRef.current = performance.now();
+      loop();
+    };
+
+    const resize = () => {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const w = Math.floor(window.innerWidth * dpr);
+      const h = Math.floor(window.innerHeight * dpr);
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w;
+        canvas.height = h;
+      }
+      gl.viewport(0, 0, canvas.width, canvas.height);
+      if (uniformsRef.current?.u_resolution) {
+        gl.uniform2f(uniformsRef.current.u_resolution, canvas.width, canvas.height);
+      }
+    };
+
+    const loop = () => {
+      const now = performance.now();
+      const t = (now - startRef.current) * 0.0015 - 11200.0; // preserve original timing curve
+      gl.useProgram(program);
+      if (uniformsRef.current?.u_time) gl.uniform1f(uniformsRef.current.u_time, t);
+      if (uniformsRef.current?.u_noise) {
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, texRef.current);
+        gl.uniform1i(uniformsRef.current.u_noise, 0);
+      }
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+      rafRef.current = requestAnimationFrame(loop);
+    };
+
+    const onResize = () => {
+      if (!gl) return;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const w = Math.floor(window.innerWidth * dpr);
+      const h = Math.floor(window.innerHeight * dpr);
+      canvas.width = w;
+      canvas.height = h;
+      gl.viewport(0, 0, w, h);
+      if (uniformsRef.current?.u_resolution) {
+        gl.uniform2f(uniformsRef.current.u_resolution, w, h);
+      }
+    };
+
+    window.addEventListener("resize", onResize);
+    return () => {
+      window.removeEventListener("resize", onResize);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      // Cleanup GL
+      if (programRef.current) gl.deleteProgram(programRef.current);
+      if (texRef.current) gl.deleteTexture(texRef.current);
+      glRef.current = null;
+    };
+  }, []);
 
   return (
-    <>
-      {notes.map((note) => (
-        <motion.div
-          key={`note-${note.id}`}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ 
-            opacity: [0, note.opacity, note.opacity, 0],
-            y: [0, -20, 0],
-            rotate: [0, 10, -10, 0]
-          }}
-          transition={{
-            duration: note.duration,
-            repeat: Infinity,
-            delay: note.delay,
-            ease: "easeInOut"
-          }}
-          className="absolute"
-          style={{
-            left: `${note.left}%`,
-            top: `${note.top}%`,
-          }}
-        >
-          {renderNote(note.type, note.size, note.opacity)}
-        </motion.div>
-      ))}
-    </>
-  );
-});
-
-// Componente mejorado para olas inferiores: más etéreo y realista con animación suave
-const WavesLayer = React.memo(() => (
-  <motion.div
-    animate={{ y: [0, -6, 0] }}  // Movimiento más pronunciado
-    transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-    className="absolute bottom-0 left-0 right-0 h-1/3 overflow-hidden"
-    style={{
-      background: 'linear-gradient(to top, rgba(0, 150, 200, 0.4), transparent 70%)',
-      maskImage: 'url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxkZWZzPjxwYXR0ZXJuIGlkPSJ3YXZlIiB3aWR0aD0iODAiIGhlaWdodD0iNDAiIHBhdHRlcm5Vbml0cz0idXNlclNwYWNlT25Vc2UiPjxwYXRoIGQ9Ik0wIDBDNCAwIDggOCA4MCAwQzEyIDAgMTYgMCAyMCA4QzI0IDAgMjggMCAzMiA4QzM2IDAgNDAgMCA0NCA4QzQ4IDAgNTIgMCA1NiA4QzYwIDAgNjQgMCA2OCA4QzcyIDAgNzYgMCA4MCAwIiBmaWxsPSJub25lIiBzdHJva2U9InRyYW5zcGFyZW50Ii8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI3dhdmUpIi8+PC9zdmc+")',
-    }}
-  >
-    <motion.div
-      animate={{ x: [0, -80, 0] }}
-      transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-      className="absolute inset-0"
-      style={{
-        background: 'repeating-linear-gradient(to right, transparent 0%, rgba(0, 150, 200, 0.2) 50%, transparent 100%)',
-        backgroundSize: '180% 100%',
-      }}
+    <canvas
+      ref={canvasRef}
+      className="fixed inset-0 z-0 block w-full h-full"
+      style={{ display: "block", width: "100vw", height: "100vh" }}
     />
-  </motion.div>
-));
-
-export const SkyBackground = React.memo(() => {
-  return (
-    <div className="fixed inset-0 z-0 overflow-hidden">
-      {/* Fondo base mejorado: imagen realista con gradiente más vibrante */}
-      <div 
-        className="absolute inset-0 bg-cover bg-center"
-        style={{
-          backgroundImage: 'url("https://images.unsplash.com/photo-1534796636912-3b95b3ab5986?ixlib=rb-1.2.1&auto=format&fit=crop&w=2942&q=80")',
-        }}
-      >
-        <div className="absolute inset-0 bg-gradient-to-b from-blue-900/30 via-purple-700/20 to-emerald-500/15" />
-      </div>
-      
-      {/* Capa de atmósfera dinámica mejorada */}
-      <motion.div
-        animate={{ opacity: [0.2, 0.35, 0.2] }}
-        transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute inset-0"
-        style={{
-          background: `
-            radial-gradient(ellipse 600px 300px at 30% 20%, rgba(59, 130, 246, 0.25) 0%, transparent 75%),
-            radial-gradient(ellipse 500px 250px at 70% 50%, rgba(139, 92, 246, 0.2) 0%, transparent 75%)
-          `
-        }}
-      />
-      
-      {/* Nebulosas mejoradas */}
-      <NebulaLayer />
-      
-      {/* Estrellas mejoradas */}
-      <StarsLayer />
-      
-      {/* Cometas/meteoros mejorados */}
-      <CometLayer />
-      
-      {/* Nuevas burbujas flotantes */}
-      <BubblesLayer />
-      
-      {/* Nuevas hojas verdes cayendo */}
-      <LeavesLayer />
-      
-      {/* Nuevas notas musicales flotando */}
-      <MusicNotesLayer />
-      
-      {/* Olas inferiores mejoradas */}
-      <WavesLayer />
-      
-      {/* Resplandor del horizonte mejorado */}
-      <div 
-        className="absolute bottom-0 left-0 right-0 h-32 pointer-events-none"
-        style={{
-          background: 'linear-gradient(to top, rgba(16, 185, 129, 0.22), transparent)',
-        }}
-      />
-    </div>
   );
-});
+};
 
-// Exportación con nombre para evitar problemas de tree-shaking
-export { SkyBackground as SkyBackgroundComponent };
+export default SkyBackground;
