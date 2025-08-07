@@ -2,7 +2,7 @@
 import React, { memo, useMemo } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { useWindows } from '../context/WindowContext';
-import { Window } from './Window';
+import Window from './Window';
 
 export const WindowManager = memo(() => {
   const { windows } = useWindows();
