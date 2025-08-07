@@ -4,7 +4,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Routes, Route } from "react-router-dom"; // Eliminamos HashRouter aquí, ya está en main.tsx
 import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
