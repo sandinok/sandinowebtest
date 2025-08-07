@@ -2,49 +2,48 @@
 import React, { useEffect, useRef } from "react";
 
 /*
-SkyBackground ultra-optimizado + ciclos de día/noche y lluvia opcional:
-- Mantiene el look sky-dawn con movimiento suave y color grading estable.
-- Calidad adaptativa con histéresis (56–64 pasos) sin “bombeo”.
-- DPR objetivo 1.25–1.5; pausa en pestaña oculta o fuera de viewport.
-- Dither sutil para reducir banding.
-- Nuevo: ciclo día→tarde→noche→amanecer (u_phase 0..1). Periodo ~120s.
-- Nuevo: “lluvia” minimalista en shader (u_rainIntensity) con dirección, sin coste alto.
-- Controles vía props: dayNightCycleSec, rainIntensity (0..1), enableAutoRain.
+SkyBackground — versión estable y visible:
+- DPR fijo seguro (1.25) para evitar variaciones raras en dispositivos.
+- Calidad fija por defecto (64 pasos); opcional bajar a 56 con prop lowPowerMode.
+- Ciclo día/noche con contraste visible (activable por prop).
+- Lluvia claramente visible cuando rainIntensity > 0 (o auto si enableAutoRain).
+- Sin bombeos de calidad; pausa en pestaña oculta / fuera de viewport.
+- Dither sutil anti-banding.
 */
 
 type Props = {
-  dayNightCycleSec?: number;   // segundos para completar el ciclo; default 120
-  rainIntensity?: number;      // 0..1, 0 sin lluvia, >0 activa lluvia; default 0
-  enableAutoRain?: boolean;    // si true, modula la lluvia suavemente a lo largo del tiempo
+  enableDayNight?: boolean;     // activa ciclo día/noche visible
+  dayNightCycleSec?: number;    // segundos por ciclo (default 120)
+  rainIntensity?: number;       // 0..1 (0 sin lluvia); si >0, siempre visible
+  enableAutoRain?: boolean;     // lluvia automática modulada lentamente
+  lowPowerMode?: boolean;       // fuerza calidad 56 y DPR=1.0
 };
 
 export const SkyBackground: React.FC<Props> = ({
+  enableDayNight = true,
   dayNightCycleSec = 120,
   rainIntensity = 0,
   enableAutoRain = false,
+  lowPowerMode = false,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const glRef = useRef<WebGLRenderingContext | null>(null);
   const programRef = useRef<WebGLProgram | null>(null);
-  const uLocsRef = useRef<{
+  const uRef = useRef<{
     u_time: WebGLUniformLocation | null;
     u_resolution: WebGLUniformLocation | null;
     u_noise: WebGLUniformLocation | null;
     u_quality: WebGLUniformLocation | null;
     u_phase: WebGLUniformLocation | null;
     u_rain: WebGLUniformLocation | null;
+    u_enableDayNight: WebGLUniformLocation | null;
   } | null>(null);
   const noiseTexRef = useRef<WebGLTexture | null>(null);
   const rafRef = useRef<number | null>(null);
   const startRef = useRef<number>(0);
-
+  const lastTSRef = useRef<number>(performance.now());
   const visibleRef = useRef<boolean>(true);
   const inViewRef = useRef<boolean>(true);
-  const emaRef = useRef<number>(16.7); // ms/frame
-  const qualityRef = useRef<number>(64); // steps
-  const cooldownRef = useRef<number>(0);
-  const dprTargetRef = useRef<number>(1.25);
-  const lastTSRef = useRef<number>(performance.now());
 
   useEffect(() => {
     const canvas = canvasRef.current!;
@@ -61,24 +60,20 @@ export const SkyBackground: React.FC<Props> = ({
     if (!gl) return;
     glRef.current = gl;
 
-    const vsSource = `
+    const vs = `
       attribute vec2 a_position;
       void main() { gl_Position = vec4(a_position, 0.0, 1.0); }
     `;
 
-    // Añadido:
-    // - u_phase (0..1): 0 amanecer, 0.25 día, 0.5 atardecer, 0.75 noche, 1 ~ amanecer.
-    // - u_rain: 0..1 cascada de lluvia estilizada, coste bajo, sumada al resultado final con screen-like blend.
-    // - Dither anti-banding.
-    // - Movimiento/cámara suaves y grading estable.
-    const fsSource = `
+    const fs = `
       precision mediump float;
       uniform vec2 u_resolution;
       uniform float u_time;
       uniform sampler2D u_noise;
-      uniform float u_quality;
-      uniform float u_phase; // 0..1 ciclo día/noche
-      uniform float u_rain;  // 0..1 intensidad lluvia
+      uniform float u_quality;         // pasos efectivos 56..64
+      uniform float u_phase;           // 0..1 (día/noche)
+      uniform float u_rain;            // 0..1
+      uniform float u_enableDayNight;  // 0/1
 
       float dither8x8(vec2 p) {
         vec2 k = vec2(0.06711056, 0.00583715);
@@ -119,11 +114,10 @@ export const SkyBackground: React.FC<Props> = ({
         return vec3(sin(p*0.034)*7.4, cos(p*0.22)*0.8, p);
       }
 
-      // Paletas día/noche para mezclas suaves (no lavadas, sin crush)
       vec3 gradeBase(vec3 col, float sunF, float density, float travelled) {
         vec3 baseShadow = vec3(0.02, 0.035, 0.07);
-        vec3 warm = vec3(0.40, 0.30, 0.22)*2.7;  // cálidos atardecer
-        vec3 cool = vec3(0.20, 0.42, 0.74)*0.88; // azules noche/amanecer
+        vec3 warm = vec3(0.40, 0.30, 0.22)*2.7;
+        vec3 cool = vec3(0.20, 0.42, 0.74)*0.88;
 
         col = mix(
           mix(vec3(0.47), vec3(1.0), col * density * 4.6),
@@ -136,48 +130,37 @@ export const SkyBackground: React.FC<Props> = ({
         return col;
       }
 
-      // Mezcla día/noche según u_phase (0 amanecer, 0.25 día, 0.5 atardecer, 0.75 noche)
-      // Usamos curvas suaves para evitar saltos y mantener coherencia cromática.
       vec3 applyDayNight(vec3 col, float phase) {
+        if (u_enableDayNight < 0.5) return col;
         float p = fract(phase);
-        // Generamos pesos para cuatro “estados”
-        // amanecer (A), día (D), atardecer (S), noche (N)
         float A = smoothstep(0.95, 1.0, p) + smoothstep(0.0, 0.1, p) - smoothstep(0.1, 0.2, p);
         float D = smoothstep(0.15, 0.35, p) - smoothstep(0.35, 0.45, p);
         float S = smoothstep(0.45, 0.55, p) - smoothstep(0.55, 0.68, p);
         float N = smoothstep(0.68, 0.88, p) - smoothstep(0.88, 0.98, p);
-        // Normalizar
         float sum = max(0.0001, A + D + S + N);
         A /= sum; D /= sum; S /= sum; N /= sum;
 
-        // Tintes sutiles por estado
-        vec3 tintA = vec3(1.02, 0.98, 1.06); // amanecer: leve magenta/azul
-        vec3 tintD = vec3(1.03, 1.03, 1.03); // día: casi neutro
-        vec3 tintS = vec3(1.06, 1.00, 0.95); // atardecer: cálido
-        vec3 tintN = vec3(0.85, 0.95, 1.08); // noche: frío
-
+        vec3 tintA = vec3(1.06, 0.95, 1.08); // amanecer: tint más notorio
+        vec3 tintD = vec3(1.03, 1.03, 1.03);
+        vec3 tintS = vec3(1.10, 0.96, 0.90); // atardecer: más cálido
+        vec3 tintN = vec3(0.78, 0.92, 1.12); // noche: más frío
         vec3 mixed = col * (tintA*A + tintD*D + tintS*S + tintN*N);
-        // Ajuste de exposición muy sutil
-        float exposure = 0.98 + 0.06*D + 0.02*A + 0.02*S - 0.04*N;
+
+        // exposición visible
+        float exposure = 0.92 + 0.14*D + 0.04*A + 0.02*S - 0.12*N;
         return mixed * exposure;
       }
 
-      // Lluvia estilizada de bajo coste: rayas diagonales muy suaves mezcladas en screen-like
       vec3 applyRain(vec3 col, vec2 frag, float intensity) {
         if (intensity <= 0.001) return col;
-        // Dirección lluvia (diagonal)
         vec2 dir = normalize(vec2(-0.6, -1.0));
-        // frecuencia base y velocidad
         float freq = 120.0;
         float speed = 180.0;
         float phase = dot(frag, dir) * freq + u_time * speed;
-        // patrón rayado
         float stripe = smoothstep(0.45, 0.5, fract(phase)) * smoothstep(0.55, 0.5, fract(phase));
-        stripe = pow(stripe, 0.8); // suaviza picos
-        // grosor/control por intensidad
-        float mask = stripe * (0.08 + 0.22 * intensity);
-        vec3 rainColor = vec3(0.6, 0.75, 1.0) * (0.15 + 0.35*intensity);
-        // Mezcla screen-like
+        stripe = pow(stripe, 0.8);
+        float mask = stripe * (0.18 + 0.42 * intensity); // más visible
+        vec3 rainColor = vec3(0.65, 0.80, 1.0) * (0.25 + 0.55*intensity);
         vec3 outCol = 1.0 - (1.0 - col) * (1.0 - rainColor * mask);
         return mix(col, outCol, clamp(intensity, 0.0, 1.0));
       }
@@ -245,10 +228,8 @@ export const SkyBackground: React.FC<Props> = ({
         col = gradeBase(col, sunF, density, travelled);
         col = applyDayNight(col, u_phase);
 
-        // Lluvia: usar coords de fragmento (en píxeles) para patrón a escala pantalla
         col = applyRain(col, gl_FragCoord.xy / u_resolution.y, u_rain);
 
-        // Dither anti-banding
         col += dither8x8(gl_FragCoord.xy);
 
         gl_FragColor = vec4(col, 1.0);
@@ -266,8 +247,8 @@ export const SkyBackground: React.FC<Props> = ({
       }
       return sh;
     };
-    const vs = compile(gl.VERTEX_SHADER, vsSource);
-    const fs = compile(gl.FRAGMENT_SHADER, fsSource);
+    const vs = compile(gl.VERTEX_SHADER, vs);
+    const fs = compile(gl.FRAGMENT_SHADER, fs);
     if (!vs || !fs) return;
 
     const program = gl.createProgram()!;
@@ -282,10 +263,7 @@ export const SkyBackground: React.FC<Props> = ({
     gl.useProgram(program);
     programRef.current = program;
 
-    const quad = new Float32Array([
-      -1, -1,  1, -1,  -1, 1,
-       1, -1,  1,  1,  -1, 1
-    ]);
+    const quad = new Float32Array([-1,-1, 1,-1, -1,1, 1,-1, 1,1, -1,1]);
     const vbo = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
     gl.bufferData(gl.ARRAY_BUFFER, quad, gl.STATIC_DRAW);
@@ -299,7 +277,8 @@ export const SkyBackground: React.FC<Props> = ({
     const u_quality = gl.getUniformLocation(program, "u_quality");
     const u_phase = gl.getUniformLocation(program, "u_phase");
     const u_rain = gl.getUniformLocation(program, "u_rain");
-    uLocsRef.current = { u_time, u_resolution, u_noise, u_quality, u_phase, u_rain };
+    const u_enableDayNight = gl.getUniformLocation(program, "u_enableDayNight");
+    uRef.current = { u_time, u_resolution, u_noise, u_quality, u_phase, u_rain, u_enableDayNight };
 
     // Noise texture
     const noiseTex = gl.createTexture()!;
@@ -321,28 +300,9 @@ export const SkyBackground: React.FC<Props> = ({
       loop();
     };
 
-    const targetDPR = () => {
-      const cores = navigator.hardwareConcurrency || 4;
-      return cores >= 8 ? 1.5 : 1.25;
-    };
-
-    const maybeBatteryDPR = async () => {
-      try {
-        const anyNav = navigator as any;
-        if (anyNav.getBattery) {
-          const b = await anyNav.getBattery();
-          if (b && (b.savePower || (b.level <= 0.15 && b.dischargingTime < 600))) {
-            return 1.0;
-          }
-        }
-      } catch {}
-      return targetDPR();
-    };
-
-    const resize = async (initial = false) => {
-      dprTargetRef.current = await maybeBatteryDPR();
-      const dprDevice = Math.min(window.devicePixelRatio || 1, 2);
-      const dpr = Math.min(dprDevice, dprTargetRef.current);
+    const resize = (initial = false) => {
+      // DPR fijo para estabilidad. lowPowerMode fuerza DPR=1.0
+      const dpr = lowPowerMode ? 1.0 : 1.25;
       const w = Math.floor(window.innerWidth * dpr);
       const h = Math.floor(window.innerHeight * dpr);
       if (canvas.width !== w || canvas.height !== h) {
@@ -350,12 +310,13 @@ export const SkyBackground: React.FC<Props> = ({
         canvas.height = h;
       }
       gl.viewport(0, 0, w, h);
-      if (uLocsRef.current?.u_resolution) {
-        gl.uniform2f(uLocsRef.current.u_resolution, w, h);
+      if (uRef.current?.u_resolution) {
+        gl.uniform2f(uRef.current.u_resolution, w, h);
       }
       if (initial) {
-        if (uLocsRef.current?.u_quality) gl.uniform1f(uLocsRef.current.u_quality, qualityRef.current);
-        if (uLocsRef.current?.u_rain) gl.uniform1f(uLocsRef.current.u_rain, rainIntensity);
+        if (uRef.current?.u_quality) gl.uniform1f(uRef.current.u_quality, lowPowerMode ? 56 : 64);
+        if (uRef.current?.u_enableDayNight) gl.uniform1f(uRef.current.u_enableDayNight, enableDayNight ? 1.0 : 0.0);
+        if (uRef.current?.u_rain) gl.uniform1f(uRef.current.u_rain, rainIntensity);
       }
     };
 
@@ -369,48 +330,33 @@ export const SkyBackground: React.FC<Props> = ({
       const dt = now - lastTSRef.current;
       lastTSRef.current = now;
 
-      // EMA del frame time
-      emaRef.current = 0.92 * emaRef.current + 0.08 * dt;
-
-      // Histéresis calidad 56–64 con cooldown
-      if (cooldownRef.current > 0) {
-        cooldownRef.current -= dt;
-      } else {
-        if (emaRef.current > 21 && qualityRef.current > 56) {
-          qualityRef.current = Math.max(56, qualityRef.current - 4);
-          if (uLocsRef.current?.u_quality) gl.uniform1f(uLocsRef.current.u_quality, qualityRef.current);
-          cooldownRef.current = 1200;
-        } else if (emaRef.current < 17.2 && qualityRef.current < 64) {
-          qualityRef.current = Math.min(64, qualityRef.current + 4);
-          if (uLocsRef.current?.u_quality) gl.uniform1f(uLocsRef.current.u_quality, qualityRef.current);
-          cooldownRef.current = 1400;
-        }
-      }
-
-      // Tiempo shader base (con offset original para curva)
+      // Tiempo shader con offset original
       const t = (now - startRef.current) * 0.0015 - 11200.0;
 
-      // Fase día/noche 0..1
-      const phase = (now - startRef.current) / (dayNightCycleSec * 1000);
-      const phaseWrap = (phase - Math.floor(phase)); // fract
+      // Día/noche
+      let phaseWrap = 0.0;
+      if (enableDayNight) {
+        const phase = (now - startRef.current) / (dayNightCycleSec * 1000);
+        phaseWrap = phase - Math.floor(phase);
+      }
 
-      // Lluvia auto (si enableAutoRain): modulación lenta y suave
+      // Lluvia
       let rain = rainIntensity;
       if (enableAutoRain) {
-        // Mezcla: un seno lento y una envolvente dependiente de la noche (más prob de lluvia de noche)
-        const nightBias = Math.max(0.0, Math.cos(phaseWrap * 6.28318)); // ~1 en noche
-        const auto = 0.3 * (0.5 + 0.5 * Math.sin(now * 0.00025 + 1.0)) * (0.35 + 0.65 * nightBias);
+        const slow = 0.5 + 0.5 * Math.sin(now * 0.00025 + 1.0);
+        const nightBias = enableDayNight ? Math.max(0.0, Math.cos(phaseWrap * 6.28318)) : 0.6;
+        const auto = 0.5 * slow * (0.35 + 0.65 * nightBias);
         rain = Math.min(1.0, Math.max(rainIntensity, auto));
       }
 
       gl.useProgram(programRef.current!);
-      if (uLocsRef.current?.u_time) gl.uniform1f(uLocsRef.current.u_time, t);
-      if (uLocsRef.current?.u_phase) gl.uniform1f(uLocsRef.current.u_phase, phaseWrap);
-      if (uLocsRef.current?.u_rain) gl.uniform1f(uLocsRef.current.u_rain, rain);
-      if (uLocsRef.current?.u_noise) {
+      if (uRef.current?.u_time) gl.uniform1f(uRef.current.u_time, t);
+      if (uRef.current?.u_phase) gl.uniform1f(uRef.current.u_phase, phaseWrap);
+      if (uRef.current?.u_rain) gl.uniform1f(uRef.current.u_rain, rain);
+      if (uRef.current?.u_noise) {
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, noiseTexRef.current);
-        gl.uniform1i(uLocsRef.current.u_noise, 0);
+        gl.uniform1i(uRef.current.u_noise, 0);
       }
       gl.drawArrays(gl.TRIANGLES, 0, 6);
       rafRef.current = requestAnimationFrame(loop);
@@ -447,7 +393,7 @@ export const SkyBackground: React.FC<Props> = ({
       if (noiseTexRef.current) gl.deleteTexture(noiseTexRef.current);
       glRef.current = null;
     };
-  }, [dayNightCycleSec, rainIntensity, enableAutoRain]);
+  }, [enableDayNight, dayNightCycleSec, rainIntensity, enableAutoRain, lowPowerMode]);
 
   return (
     <canvas
