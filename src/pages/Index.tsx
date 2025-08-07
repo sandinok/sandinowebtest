@@ -10,14 +10,12 @@ import { LoadingScreen } from '../components/LoadingScreen';
 import { WindowProvider } from '../context/WindowContext';
 import { SoundProvider } from '../context/SoundContext';
 
-// Minimal fallback for Suspense
 const Fallback: React.FC = () => <div className="fixed inset-0" aria-hidden />;
 
 const Index: React.FC = () => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
 
-  // Controlled loading sequence
   const simulateLoading = useCallback(() => {
     let progress = 0;
     const interval = setInterval(() => {
@@ -46,10 +44,7 @@ const Index: React.FC = () => {
               <LoadingScreen key="loading" progress={loadingProgress} />
             ) : (
               <div key="main" className="relative min-h-screen">
-                {/* Background (WebGL) */}
                 <SkyBackground />
-
-                {/* Foreground UI */}
                 <Suspense fallback={<Fallback />}>
                   <MainTitle />
                   <GlassDock />
