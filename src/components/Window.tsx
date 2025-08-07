@@ -1,10 +1,8 @@
 // src/components/Window.tsx
-import React, { useRef, useMemo, memo, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import Draggable from 'react-draggable';
+import React, { memo, useMemo, useRef, useCallback } from 'react';
+import { Rnd } from 'react-rnd';
 import { X, Minus, Square } from 'lucide-react';
 import { useWindows } from '../context/WindowContext';
-import { Resizable } from 're-resizable';
 
 type WindowModel = {
   id: string;
@@ -20,12 +18,11 @@ interface WindowProps {
   window: WindowModel;
 }
 
-const SectionTitle = memo(({ children }: { children: React.ReactNode }) => (
+const SectionTitle = ({ children }: { children: React.ReactNode }) => (
   <h2 className="text-2xl font-bold text-white">{children}</h2>
-));
-SectionTitle.displayName = 'SectionTitle';
+);
 
-const WindowContent = memo(({ id }: { id: string }) => {
+const WindowBody = ({ id }: { id: string }) => {
   switch (id) {
     case 'portfolio':
       return (
@@ -33,9 +30,7 @@ const WindowContent = memo(({ id }: { id: string }) => {
           <SectionTitle>Mi Portfolio</SectionTitle>
           <div className="grid grid-cols-2 gap-4">
             {[1, 2, 3, 4].map(i => (
-              <div key={i} className="bg-gradient-to-br from-blue-400/70 to-purple-500/70 h-32 rounded-xl flex items-center justify-center text-white font-semibold backdrop-blur-md hover:scale-[1.01] transition-transform">
-                Proyecto {i}
-              </div>
+              <div key={i} className="bg-gradient-to-br from-blue-400/70 to-purple-500/70 h-32 rounded-xl flex items-center justify-center text-white font-semibold backdrop-blur-md hover:scale-[1.01] transition-transform">Proyecto {i}</div>
             ))}
           </div>
         </div>
@@ -75,11 +70,11 @@ const WindowContent = memo(({ id }: { id: string }) => {
           <div className="space-y-4">
             <div className="border-l-4 border-green-500/80 pl-4 backdrop-blur-md bg-green-500/15 p-4 rounded-r-xl hover:bg-green-500/25 transition-colors">
               <h3 className="font-semibold text-white">Naturaleza</h3>
-              <p className="text-sm text-gray-100">Los paisajes dominicanos inspiran mis colores.</p>
+              <p className="text-sm text-gray-100">Los paisajes dominicanos inspiran mis colores</p>
             </div>
             <div className="border-l-4 border-blue-500/80 pl-4 backdrop-blur-md bg-blue-500/15 p-4 rounded-r-xl hover:bg-blue-500/25 transition-colors">
               <h3 className="font-semibold text-white">Tecnología</h3>
-              <p className="text-sm text-gray-100">La fusión entre lo digital y lo tradicional.</p>
+              <p className="text-sm text-gray-100">La fusión entre lo digital y lo tradicional</p>
             </div>
           </div>
         </div>
@@ -90,12 +85,10 @@ const WindowContent = memo(({ id }: { id: string }) => {
           <SectionTitle>Sobre Mí</SectionTitle>
           <div className="flex flex-col md:flex-row gap-6">
             <div className="md:w-1/3 flex justify-center">
-              <div className="bg-gradient-to-br from-blue-400 to-purple-500 w-40 h-40 rounded-full flex items-center justify-center text-white text-5xl font-bold shadow-[0_12px_30px_rgba(139,92,246,0.18)]">
-                S
-              </div>
+              <div className="bg-gradient-to-br from-blue-400 to-purple-500 w-40 h-40 rounded-full flex items-center justify-center text-white text-5xl font-bold shadow-[0_12px_30px_rgba(139,92,246,0.18)]">S</div>
             </div>
             <div className="md:w-2/3 space-y-4">
-              <p className="text-gray-100">Soy Sandino, artista digital y creador de contenido de República Dominicana.</p>
+              <p className="text-gray-100">Soy Sandino, un artista digital y creador de contenido de República Dominicana.</p>
               <p className="text-gray-100">Creo experiencias visuales inmersivas que combinan arte y tecnología.</p>
             </div>
           </div>
@@ -127,176 +120,113 @@ const WindowContent = memo(({ id }: { id: string }) => {
     default:
       return <div className="p-6 text-white">Contenido no encontrado</div>;
   }
-});
-WindowContent.displayName = 'WindowContent';
+};
 
-export const Window = memo(({ window }: WindowProps) => {
-  const {
-    closeWindow,
-    minimizeWindow,
-    maximizeWindow,
-    bringToFront,
-    updateWindowPosition,
-    updateWindowSize,
-  } = useWindows();
+export const Window: React.FC<WindowProps> = memo(({ window }) => {
+  const { closeWindow, minimizeWindow, maximizeWindow, bringToFront, updateWindowPosition, updateWindowSize } = useWindows();
+  const frameRef = useRef<HTMLDivElement | null>(null);
 
-  const nodeRef = useRef<HTMLDivElement | null>(null);
-  const resizableRef = useRef<any>(null);
-
-  // Para suavidad: no muevas left/top/width/height mientras arrastras.
-  // Posiciona con transform (translate3d) durante drag/resize; sólo commit al soltar.
-  const frameStyles = useMemo<React.CSSProperties>(() => {
-    const isMax = window.isMaximized;
-    const w = isMax ? window.innerWidth : window.size.width;
-    const h = isMax ? window.innerHeight : window.size.height;
-    const x = isMax ? 0 : window.position.x;
-    const y = isMax ? 0 : window.position.y;
-    return {
-      zIndex: window.zIndex,
-      width: w,
-      height: h,
-      transform: `translate3d(${x}px, ${y}px, 0)`,
-      position: 'fixed',
-      left: 0,
-      top: 0,
-      willChange: 'transform',
-    };
-  }, [window.isMaximized, window.position.x, window.position.y, window.size.width, window.size.height, window.zIndex]);
-
-  const resizeConfig = useMemo(() => {
-    return {
-      enable: window.isMaximized
-        ? false
-        : {
-            top: true, right: true, bottom: true, left: true,
-            topRight: true, bottomRight: true, bottomLeft: true, topLeft: true,
-          },
-      minWidth: 360,
-      minHeight: 260,
-      size: { width: window.size.width, height: window.size.height },
-    };
-  }, [window.isMaximized, window.size.width, window.size.height]);
-
-  const onStartDrag = useCallback(() => {
-    if (nodeRef.current) {
-      nodeRef.current.dataset.state = 'dragging';
-      nodeRef.current.style.transition = 'none';
-      nodeRef.current.style.boxShadow = '0 8px 18px rgba(0,0,0,0.28)'; // sombra más ligera
-    }
-  }, []);
-
-  const onStopDrag = useCallback((_e: any, data: any) => {
-    updateWindowPosition(window.id, { x: data.x, y: data.y });
-    if (nodeRef.current) {
-      nodeRef.current.dataset.state = 'idle';
-      nodeRef.current.style.transition = 'transform 0.18s ease-out';
-      nodeRef.current.style.boxShadow = '0 18px 36px -12px rgba(0,0,0,0.38)';
-    }
-  }, [updateWindowPosition, window.id]);
-
-  const onResizeStart = useCallback(() => {
-    if (nodeRef.current) {
-      nodeRef.current.dataset.state = 'resizing';
-      nodeRef.current.style.transition = 'none';
-      nodeRef.current.style.boxShadow = '0 8px 18px rgba(0,0,0,0.28)';
-    }
-  }, []);
-
-  const onResizeStop = useCallback((_e: any, _dir: any, _ref: HTMLElement, d: { width: number; height: number }) => {
-    updateWindowSize(window.id, { width: window.size.width + d.width, height: window.size.height + d.height });
-    if (nodeRef.current) {
-      nodeRef.current.dataset.state = 'idle';
-      nodeRef.current.style.transition = 'transform 0.18s ease-out';
-      nodeRef.current.style.boxShadow = '0 18px 36px -12px rgba(0,0,0,0.38)';
-    }
-  }, [updateWindowSize, window.id, window.size.width, window.size.height]);
+  const defaultPosition = useMemo(() => ({ x: window.position.x, y: window.position.y }), [window.position.x, window.position.y]);
+  const size = useMemo(() => ({ width: window.size.width, height: window.size.height }), [window.size.width, window.size.height]);
 
   if (window.isMinimized) return null;
 
   return (
-    <AnimatePresence>
-      <Draggable
-        handle=".window-header"
-        position={window.isMaximized ? { x: 0, y: 0 } : window.position}
-        onStart={onStartDrag}
-        onStop={onStopDrag}
-        disabled={window.isMaximized}
-        nodeRef={nodeRef}
-        cancel=".no-drag, input, textarea, button, select, [role='button']"
+    <Rnd
+      default={{ ...defaultPosition, ...size }}
+      size={window.isMaximized ? { width: window.innerWidth ?? window.size.width, height: window.innerHeight ?? window.size.height } : size}
+      position={window.isMaximized ? { x: 0, y: 0 } : defaultPosition}
+      onDragStart={() => {
+        bringToFront(window.id);
+        if (frameRef.current) {
+          frameRef.current.dataset.state = 'dragging';
+          frameRef.current.style.transition = 'none';
+          frameRef.current.style.boxShadow = '0 10px 22px rgba(0,0,0,0.28)';
+        }
+      }}
+      onDragStop={(_e, d) => {
+        updateWindowPosition(window.id, { x: d.x, y: d.y });
+        if (frameRef.current) {
+          frameRef.current.dataset.state = 'idle';
+          frameRef.current.style.transition = 'transform 0.18s ease-out';
+          frameRef.current.style.boxShadow = '0 18px 36px -12px rgba(0,0,0,0.32)';
+        }
+      }}
+      onResizeStart={() => {
+        if (frameRef.current) {
+          frameRef.current.dataset.state = 'resizing';
+          frameRef.current.style.transition = 'none';
+          frameRef.current.style.boxShadow = '0 10px 22px rgba(0,0,0,0.28)';
+        }
+      }}
+      onResizeStop={(_e, _dir, ref, _delta, position) => {
+        const width = parseInt(ref.style.width, 10);
+        const height = parseInt(ref.style.height, 10);
+        updateWindowSize(window.id, { width, height });
+        updateWindowPosition(window.id, { x: position.x, y: position.y });
+        if (frameRef.current) {
+          frameRef.current.dataset.state = 'idle';
+          frameRef.current.style.transition = 'transform 0.18s ease-out';
+          frameRef.current.style.boxShadow = '0 18px 36px -12px rgba(0,0,0,0.32)';
+        }
+      }}
+      bounds="window"
+      dragHandleClassName="window-header"
+      enableResizing={!window.isMaximized}
+      disableDragging={window.isMaximized}
+      style={{
+        zIndex: window.zIndex,
+        position: 'fixed',
+        left: 0,
+        top: 0,
+        transform: window.isMaximized ? 'translate3d(0,0,0)' : undefined,
+      }}
+      className="window-frame"
+    >
+      <div
+        ref={frameRef}
+        className="h-full flex flex-col rounded-2xl overflow-hidden border border-white/14 bg-[rgba(18,18,32,0.52)] backdrop-blur-2xl window-shadow"
+        style={{
+          // suavidad GPU
+          transform: 'translateZ(0)',
+        }}
+        onMouseDown={() => bringToFront(window.id)}
       >
-        <motion.div
-          ref={nodeRef}
-          data-state="idle"
-          initial={{ scale: 0.97, opacity: 0, y: 24 }}
-          animate={{ scale: 1, opacity: 1, y: 0 }}
-          exit={{ scale: 0.97, opacity: 0, y: 48 }}
-          transition={{ type: 'spring', stiffness: 240, damping: 24, mass: 0.8 }}
-          className="rounded-2xl overflow-hidden"
-          style={frameStyles}
-          onMouseDown={() => bringToFront(window.id)}
-        >
-          <Resizable
-            ref={resizableRef}
-            size={resizeConfig.size}
-            onResizeStart={onResizeStart}
-            onResizeStop={onResizeStop}
-            enable={resizeConfig.enable as any}
-            minWidth={resizeConfig.minWidth}
-            minHeight={resizeConfig.minHeight}
-            className="h-full flex flex-col bg-[rgba(18,18,32,0.52)] backdrop-blur-2xl border border-white/14"
-            handleStyles={{
-              bottomRight: { cursor: 'nwse-resize' },
-              bottomLeft: { cursor: 'nesw-resize' },
-              topRight: { cursor: 'nesw-resize' },
-              topLeft: { cursor: 'nwse-resize' },
-              left: { cursor: 'ew-resize' },
-              right: { cursor: 'ew-resize' },
-              top: { cursor: 'ns-resize' },
-              bottom: { cursor: 'ns-resize' },
-            } as any}
-            style={{
-              // durante drag/resize removemos transiciones
-              transition: (nodeRef.current?.dataset.state === 'idle') ? 'box-shadow 0.2s ease' : 'none',
-            }}
-          >
-            {/* Header */}
-            <div className="window-header px-4 py-2.5 flex items-center justify-between cursor-move bg-gradient-to-r from-black/24 to-black/14 border-b border-white/10 select-none">
-              <h3 className="font-semibold text-white text-sm md:text-base truncate max-w-[240px] pr-2">
-                {window.title}
-              </h3>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => minimizeWindow(window.id)}
-                  className="w-6 h-6 rounded-full flex items-center justify-center bg-yellow-400/85 hover:bg-yellow-400 transition-colors"
-                  aria-label="Minimizar"
-                >
-                  <Minus size={12} className="text-yellow-900" />
-                </button>
-                <button
-                  onClick={() => maximizeWindow(window.id)}
-                  className="w-6 h-6 rounded-full flex items-center justify-center bg-green-400/85 hover:bg-green-400 transition-colors"
-                  aria-label="Maximizar"
-                >
-                  <Square size={12} className="text-green-900" />
-                </button>
-                <button
-                  onClick={() => closeWindow(window.id)}
-                  className="w-6 h-6 rounded-full flex items-center justify-center bg-red-400/90 hover:bg-red-500 transition-colors"
-                  aria-label="Cerrar"
-                >
-                  <X size={12} className="text-red-950" />
-                </button>
-              </div>
-            </div>
+        {/* Header */}
+        <div className="window-header px-4 py-2.5 flex items-center justify-between cursor-move bg-gradient-to-r from-black/24 to-black/14 border-b border-white/10 select-none">
+          <h3 className="font-semibold text-white text-sm md:text-base truncate max-w-[240px] pr-2">{window.title}</h3>
+          <div className="flex gap-2">
+            <button
+              onClick={() => minimizeWindow(window.id)}
+              className="w-6 h-6 rounded-full flex items-center justify-center bg-yellow-400/85 hover:bg-yellow-400 transition-colors"
+              aria-label="Minimizar"
+            >
+              <Minus size={12} className="text-yellow-900" />
+            </button>
+            <button
+              onClick={() => maximizeWindow(window.id)}
+              className="w-6 h-6 rounded-full flex items-center justify-center bg-green-400/85 hover:bg-green-400 transition-colors"
+              aria-label="Maximizar"
+            >
+              <Square size={12} className="text-green-900" />
+            </button>
+            <button
+              onClick={() => closeWindow(window.id)}
+              className="w-6 h-6 rounded-full flex items-center justify-center bg-red-400/90 hover:bg-red-500 transition-colors"
+              aria-label="Cerrar"
+            >
+              <X size={12} className="text-red-950" />
+            </button>
+          </div>
+        </div>
 
-            {/* Contenido */}
-            <div className="flex-1 overflow-auto custom-scrollbar p-2 will-change-scroll">
-              <WindowContent id={window.id} />
-            </div>
-          </Resizable>
-        </motion.div>
-      </Draggable>
-    </AnimatePresence>
+        {/* Content */}
+        <div className="flex-1 overflow-auto custom-scrollbar p-2 will-change-scroll">
+          <WindowBody id={window.id} />
+        </div>
+      </div>
+    </Rnd>
   );
 });
-Window.displayName = 'Window';
+
+export default Window;
