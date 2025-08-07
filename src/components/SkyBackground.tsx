@@ -1,13 +1,6 @@
 // src/components/SkyBackground.tsx
 import React, { useEffect, useRef } from "react";
 
-/*
-Optimized, dependency-free WebGL background:
-- Ports your provided Three.js shader to raw WebGL for a compact, production-safe build.
-- Removes mouse interaction, CCapture, and external script tags.
-- Single full-screen draw call, DPR-aware resize, GPU-accelerated.
-*/
-
 export const SkyBackground: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const glRef = useRef<WebGLRenderingContext | null>(null);
@@ -16,10 +9,16 @@ export const SkyBackground: React.FC = () => {
     u_time: WebGLUniformLocation | null;
     u_resolution: WebGLUniformLocation | null;
     u_noise: WebGLUniformLocation | null;
+    u_quality: WebGLUniformLocation | null;
   } | null>(null);
   const noiseTexRef = useRef<WebGLTexture | null>(null);
   const rafRef = useRef<number | null>(null);
   const startRef = useRef<number>(0);
+  const dprRef = useRef<number>(1);
+  const qualityRef = useRef<number>(64); // default max steps
+  const visibleRef = useRef<boolean>(true);
+  const inViewRef = useRef<boolean>(true);
+  const degradeBudgetRef = useRef<number>(0);
 
   useEffect(() => {
     const canvas = canvasRef.current!;
@@ -34,33 +33,28 @@ export const SkyBackground: React.FC = () => {
       }) as WebGLRenderingContext) ||
       (canvas.getContext("experimental-webgl") as WebGLRenderingContext);
     if (!gl) return;
-
     glRef.current = gl;
 
-    // Shaders
     const vsSource = `
       attribute vec2 a_position;
-      void main() {
-        gl_Position = vec4(a_position, 0.0, 1.0);
-      }
+      void main() { gl_Position = vec4(a_position, 0.0, 1.0); }
     `;
 
-    // Fragment shader: direct port of your code (mouse/capture removed), same visuals
+    // u_quality controla tope de pasos; mantenemos el mismo look, bajando iteraciones si hace falta
     const fsSource = `
       precision mediump float;
       uniform vec2 u_resolution;
       uniform float u_time;
       uniform sampler2D u_noise;
+      uniform float u_quality;
 
       vec3 hash33(vec3 p){ 
         return texture2D(u_noise, p.xy * p.z * 256.0).rgb;
       }
-
       mat2 rot2(float a){
         vec2 v = sin(vec2(1.570796, 0.0) + a);
         return mat2(v, -v.y, v.x);
       }
-      
       float pn(in vec3 p) {
         vec3 i = floor(p); 
         p -= i; 
@@ -68,7 +62,6 @@ export const SkyBackground: React.FC = () => {
         p.xy = texture2D(u_noise, (p.xy + i.xy + vec2(37.0, 17.0)*i.z + 0.5)/256.0, -100.0).yx;
         return mix(p.x, p.y, p.z);
       }
-      
       float trigNoise3D(in vec3 p) {
         float res = 0.0;
         float n = pn(p*8.0 + u_time*0.1);
@@ -79,13 +72,11 @@ export const SkyBackground: React.FC = () => {
         res += (dot(t, vec3(0.333)))*0.7071;    
         return ((res/1.7071))*0.85 + n*0.15;
       }
-
       float world(vec3 p) {
         float n = trigNoise3D(p * 0.1) * 10.0;
         p.y += n;
         return p.y - 3.0;
       }
-      
       vec3 path(float p) {
         return vec3(sin(p*0.05)*10.0, cos(p * 0.3), p);
       }
@@ -121,8 +112,14 @@ export const SkyBackground: React.FC = () => {
         vec3 col = vec3(0.0);
         vec3 sp;
 
+        // Adapt: clamp steps by u_quality (64 default). We emulate the 64 loop using runtime clamp.
+        int MAX_STEPS = 64;
+        int steps = int(clamp(u_quality, 16.0, 64.0));
+
         for (int i=0; i<64; i++) {
-          if((density>1.0) || travelled>80.0) {
+          if (i >= steps) break;
+
+          if ((density>1.0) || travelled>80.0) {
             travelled = 80.0;
             break;
           }
@@ -169,7 +166,6 @@ export const SkyBackground: React.FC = () => {
       }
     `;
 
-    // Compile
     const compile = (type: number, src: string) => {
       const sh = gl.createShader(type)!;
       gl.shaderSource(sh, src);
@@ -197,7 +193,6 @@ export const SkyBackground: React.FC = () => {
     gl.useProgram(program);
     programRef.current = program;
 
-    // Quad
     const quad = new Float32Array([
       -1, -1,  1, -1,  -1, 1,
        1, -1,  1,  1,  -1, 1
@@ -209,13 +204,12 @@ export const SkyBackground: React.FC = () => {
     gl.enableVertexAttribArray(locPos);
     gl.vertexAttribPointer(locPos, 2, gl.FLOAT, false, 0, 0);
 
-    // Uniforms
     const u_time = gl.getUniformLocation(program, "u_time");
     const u_resolution = gl.getUniformLocation(program, "u_resolution");
     const u_noise = gl.getUniformLocation(program, "u_noise");
-    uLocsRef.current = { u_time, u_resolution, u_noise };
+    const u_quality = gl.getUniformLocation(program, "u_quality");
+    uLocsRef.current = { u_time, u_resolution, u_noise, u_quality };
 
-    // Noise texture
     const noiseTex = gl.createTexture()!;
     noiseTexRef.current = noiseTex;
     gl.bindTexture(gl.TEXTURE_2D, noiseTex);
@@ -230,16 +224,23 @@ export const SkyBackground: React.FC = () => {
       gl.bindTexture(gl.TEXTURE_2D, noiseTex);
       gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
-      resize();
+      resize(true);
       startRef.current = performance.now();
       loop();
     };
 
-    // DPR-aware resize
-    const resize = () => {
+    const targetDPR = () => {
+      // Base: 1.25; en dispositivos fuertes sube a 1.5–2 si el ritmo es bueno
+      const hw = navigator.hardwareConcurrency || 4;
+      return hw >= 8 ? 1.5 : 1.25;
+    };
+
+    const resize = (initial = false) => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const w = Math.floor(window.innerWidth * dpr);
-      const h = Math.floor(window.innerHeight * dpr);
+      // dynamic DPR capped by target to reduce fill rate
+      dprRef.current = Math.min(dpr, targetDPR());
+      const w = Math.floor(window.innerWidth * dprRef.current);
+      const h = Math.floor(window.innerHeight * dprRef.current);
       if (canvas.width !== w || canvas.height !== h) {
         canvas.width = w;
         canvas.height = h;
@@ -248,12 +249,47 @@ export const SkyBackground: React.FC = () => {
       if (uLocsRef.current?.u_resolution) {
         gl.uniform2f(uLocsRef.current.u_resolution, w, h);
       }
+      if (initial && uLocsRef.current?.u_quality) {
+        gl.uniform1f(uLocsRef.current.u_quality, qualityRef.current);
+      }
     };
 
-    // Render loop
+    let lastT = performance.now();
+    let ema = 16.7; // ms per frame exponential moving average
+
     const loop = () => {
+      if (!visibleRef.current || !inViewRef.current) {
+        rafRef.current = requestAnimationFrame(loop);
+        return;
+      }
       const now = performance.now();
-      const t = (now - startRef.current) * 0.0015 - 11200.0; // keep original curve
+      const dt = now - lastT;
+      lastT = now;
+      // EMA frame time
+      ema = 0.9 * ema + 0.1 * dt;
+
+      // Auto-quality: if >22ms sostenido, baja calidad; si <17ms sostenido, sube hasta 64.
+      if (ema > 22 && qualityRef.current > 32) {
+        degradeBudgetRef.current += 1;
+        if (degradeBudgetRef.current > 10) {
+          qualityRef.current = Math.max(32, qualityRef.current - 8);
+          degradeBudgetRef.current = 0;
+          if (uLocsRef.current?.u_quality) {
+            gl.uniform1f(uLocsRef.current.u_quality, qualityRef.current);
+          }
+        }
+      } else if (ema < 17 && qualityRef.current < 64) {
+        degradeBudgetRef.current += 1;
+        if (degradeBudgetRef.current > 15) {
+          qualityRef.current = Math.min(64, qualityRef.current + 8);
+          degradeBudgetRef.current = 0;
+          if (uLocsRef.current?.u_quality) {
+            gl.uniform1f(uLocsRef.current.u_quality, qualityRef.current);
+          }
+        }
+      }
+
+      const t = (now - startRef.current) * 0.0015 - 11200.0;
       gl.useProgram(program);
       if (uLocsRef.current?.u_time) gl.uniform1f(uLocsRef.current.u_time, t);
       if (uLocsRef.current?.u_noise) {
@@ -266,22 +302,37 @@ export const SkyBackground: React.FC = () => {
     };
 
     const onResize = () => {
-      if (!gl) return;
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const w = Math.floor(window.innerWidth * dpr);
-      const h = Math.floor(window.innerHeight * dpr);
-      canvas.width = w;
-      canvas.height = h;
-      gl.viewport(0, 0, w, h);
-      if (uLocsRef.current?.u_resolution) {
-        gl.uniform2f(uLocsRef.current.u_resolution, w, h);
+      // throttle via rAF
+      cancelAnimationFrame(rafRef.current!);
+      resize();
+      rafRef.current = requestAnimationFrame(loop);
+    };
+
+    const onVisibility = () => {
+      visibleRef.current = document.visibilityState === "visible";
+      if (visibleRef.current) {
+        lastT = performance.now();
       }
     };
 
-    window.addEventListener("resize", onResize);
+    // IntersectionObserver to pause when off-screen (in case layouts change)
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          inViewRef.current = e.isIntersecting;
+        }
+      },
+      { root: null, threshold: 0.01 }
+    );
+    io.observe(canvas);
+
+    window.addEventListener("resize", onResize, { passive: true });
+    document.addEventListener("visibilitychange", onVisibility, false);
 
     return () => {
+      io.disconnect();
       window.removeEventListener("resize", onResize);
+      document.removeEventListener("visibilitychange", onVisibility);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       if (programRef.current) gl.deleteProgram(programRef.current);
       if (noiseTexRef.current) gl.deleteTexture(noiseTexRef.current);
@@ -294,6 +345,7 @@ export const SkyBackground: React.FC = () => {
       ref={canvasRef}
       className="fixed inset-0 z-0 block w-full h-full"
       style={{ display: "block", width: "100vw", height: "100vh" }}
+      aria-hidden
     />
   );
 };
