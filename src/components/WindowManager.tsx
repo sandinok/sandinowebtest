@@ -4,26 +4,23 @@ import { AnimatePresence } from 'framer-motion';
 import { useWindows } from '../context/WindowContext';
 import { Window } from './Window';
 
-// Componente ultra-optimizado con memoización profunda y renderizado eficiente
 export const WindowManager = memo(() => {
   const { windows } = useWindows();
 
-  // Memoizamos el filtrado y ordenación para evitar cálculos en cada render
-  const visibleWindows = useMemo(() => 
-    windows
-      .filter(w => w.isOpen && !w.isMinimized)
-      .sort((a, b) => a.zIndex - b.zIndex), // Orden por z-index para stacking natural
-    [windows]
-  );
+  const visibleWindows = useMemo(() => {
+    // filtrar primero (isOpen y no minimizadas), luego ordenar por zIndex asc
+    const filtered = windows.filter(w => w.isOpen && !w.isMinimized);
+    // copia para sort in-place sin tocar estado original
+    return [...filtered].sort((a, b) => a.zIndex - b.zIndex);
+  }, [windows]);
 
   return (
-    <AnimatePresence mode="wait">
-      {visibleWindows.map(window => (
-        <Window key={window.id} window={window} />
+    <AnimatePresence mode="popLayout">
+      {visibleWindows.map(w => (
+        <Window key={w.id} window={w} />
       ))}
     </AnimatePresence>
   );
 });
 
-// Exportamos también como default para flexibilidad
 export default WindowManager;
