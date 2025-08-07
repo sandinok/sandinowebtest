@@ -2,21 +2,23 @@
 import React, { useEffect, useRef } from "react";
 
 /*
-SkyBackground — versión estable y visible:
-- DPR fijo seguro (1.25) para evitar variaciones raras en dispositivos.
-- Calidad fija por defecto (64 pasos); opcional bajar a 56 con prop lowPowerMode.
-- Ciclo día/noche con contraste visible (activable por prop).
-- Lluvia claramente visible cuando rainIntensity > 0 (o auto si enableAutoRain).
-- Sin bombeos de calidad; pausa en pestaña oculta / fuera de viewport.
-- Dither sutil anti-banding.
+Fix build error:
+- The error came from reusing variable names "vs" and "fs" for both source strings and compiled shaders.
+- Renamed shader source variables to vsSource/fsSource and compiled shader handles to vShader/fShader.
+- Also kept the latest optimized, stable version.
+
+Features:
+- Smooth sky-dawn motion, stable grading, subtle dither (anti-banding).
+- Optional day/night cycle and rain (visible), with simple props.
+- Fixed DPR and quality defaults for stability; pauses offscreen.
 */
 
 type Props = {
-  enableDayNight?: boolean;     // activa ciclo día/noche visible
-  dayNightCycleSec?: number;    // segundos por ciclo (default 120)
-  rainIntensity?: number;       // 0..1 (0 sin lluvia); si >0, siempre visible
-  enableAutoRain?: boolean;     // lluvia automática modulada lentamente
-  lowPowerMode?: boolean;       // fuerza calidad 56 y DPR=1.0
+  enableDayNight?: boolean;
+  dayNightCycleSec?: number;
+  rainIntensity?: number;
+  enableAutoRain?: boolean;
+  lowPowerMode?: boolean;
 };
 
 export const SkyBackground: React.FC<Props> = ({
@@ -57,21 +59,22 @@ export const SkyBackground: React.FC<Props> = ({
         powerPreference: "high-performance",
       }) as WebGLRenderingContext) ||
       (canvas.getContext("experimental-webgl") as WebGLRenderingContext);
+
     if (!gl) return;
     glRef.current = gl;
 
-    const vs = `
+    const vsSource = `
       attribute vec2 a_position;
       void main() { gl_Position = vec4(a_position, 0.0, 1.0); }
     `;
 
-    const fs = `
+    const fsSource = `
       precision mediump float;
       uniform vec2 u_resolution;
       uniform float u_time;
       uniform sampler2D u_noise;
-      uniform float u_quality;         // pasos efectivos 56..64
-      uniform float u_phase;           // 0..1 (día/noche)
+      uniform float u_quality;         // 56..64
+      uniform float u_phase;           // 0..1
       uniform float u_rain;            // 0..1
       uniform float u_enableDayNight;  // 0/1
 
@@ -140,13 +143,12 @@ export const SkyBackground: React.FC<Props> = ({
         float sum = max(0.0001, A + D + S + N);
         A /= sum; D /= sum; S /= sum; N /= sum;
 
-        vec3 tintA = vec3(1.06, 0.95, 1.08); // amanecer: tint más notorio
+        vec3 tintA = vec3(1.06, 0.95, 1.08);
         vec3 tintD = vec3(1.03, 1.03, 1.03);
-        vec3 tintS = vec3(1.10, 0.96, 0.90); // atardecer: más cálido
-        vec3 tintN = vec3(0.78, 0.92, 1.12); // noche: más frío
+        vec3 tintS = vec3(1.10, 0.96, 0.90);
+        vec3 tintN = vec3(0.78, 0.92, 1.12);
         vec3 mixed = col * (tintA*A + tintD*D + tintS*S + tintN*N);
 
-        // exposición visible
         float exposure = 0.92 + 0.14*D + 0.04*A + 0.02*S - 0.12*N;
         return mixed * exposure;
       }
@@ -159,7 +161,7 @@ export const SkyBackground: React.FC<Props> = ({
         float phase = dot(frag, dir) * freq + u_time * speed;
         float stripe = smoothstep(0.45, 0.5, fract(phase)) * smoothstep(0.55, 0.5, fract(phase));
         stripe = pow(stripe, 0.8);
-        float mask = stripe * (0.18 + 0.42 * intensity); // más visible
+        float mask = stripe * (0.18 + 0.42 * intensity);
         vec3 rainColor = vec3(0.65, 0.80, 1.0) * (0.25 + 0.55*intensity);
         vec3 outCol = 1.0 - (1.0 - col) * (1.0 - rainColor * mask);
         return mix(col, outCol, clamp(intensity, 0.0, 1.0));
@@ -237,23 +239,24 @@ export const SkyBackground: React.FC<Props> = ({
     `;
 
     const compile = (type: number, src: string) => {
-      const sh = gl.createShader(type)!;
-      gl.shaderSource(sh, src);
-      gl.compileShader(sh);
-      if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
-        console.error(gl.getShaderInfoLog(sh) || "Shader compile error");
-        gl.deleteShader(sh);
+      const shader = gl.createShader(type)!;
+      gl.shaderSource(shader, src);
+      gl.compileShader(shader);
+      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        console.error(gl.getShaderInfoLog(shader) || "Shader compile error");
+        gl.deleteShader(shader);
         return null;
       }
-      return sh;
+      return shader;
     };
-    const vs = compile(gl.VERTEX_SHADER, vs);
-    const fs = compile(gl.FRAGMENT_SHADER, fs);
-    if (!vs || !fs) return;
+
+    const vShader = compile(gl.VERTEX_SHADER, vsSource);
+    const fShader = compile(gl.FRAGMENT_SHADER, fsSource);
+    if (!vShader || !fShader) return;
 
     const program = gl.createProgram()!;
-    gl.attachShader(program, vs);
-    gl.attachShader(program, fs);
+    gl.attachShader(program, vShader);
+    gl.attachShader(program, fShader);
     gl.linkProgram(program);
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
       console.error(gl.getProgramInfoLog(program) || "Program link error");
@@ -301,7 +304,6 @@ export const SkyBackground: React.FC<Props> = ({
     };
 
     const resize = (initial = false) => {
-      // DPR fijo para estabilidad. lowPowerMode fuerza DPR=1.0
       const dpr = lowPowerMode ? 1.0 : 1.25;
       const w = Math.floor(window.innerWidth * dpr);
       const h = Math.floor(window.innerHeight * dpr);
@@ -330,17 +332,14 @@ export const SkyBackground: React.FC<Props> = ({
       const dt = now - lastTSRef.current;
       lastTSRef.current = now;
 
-      // Tiempo shader con offset original
       const t = (now - startRef.current) * 0.0015 - 11200.0;
 
-      // Día/noche
       let phaseWrap = 0.0;
       if (enableDayNight) {
         const phase = (now - startRef.current) / (dayNightCycleSec * 1000);
         phaseWrap = phase - Math.floor(phase);
       }
 
-      // Lluvia
       let rain = rainIntensity;
       if (enableAutoRain) {
         const slow = 0.5 + 0.5 * Math.sin(now * 0.00025 + 1.0);
@@ -358,6 +357,7 @@ export const SkyBackground: React.FC<Props> = ({
         gl.bindTexture(gl.TEXTURE_2D, noiseTexRef.current);
         gl.uniform1i(uRef.current.u_noise, 0);
       }
+
       gl.drawArrays(gl.TRIANGLES, 0, 6);
       rafRef.current = requestAnimationFrame(loop);
     };
