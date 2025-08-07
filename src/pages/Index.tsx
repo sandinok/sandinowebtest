@@ -2,7 +2,6 @@
 import React, { useEffect, useState, useCallback, Suspense } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { SkyBackground } from '../components/SkyBackground';
-import { ParticleSystem } from '../components/ParticleSystem';
 import { MainTitle } from '../components/MainTitle';
 import { GlassDock } from '../components/GlassDock';
 import { WindowManager } from '../components/WindowManager';
