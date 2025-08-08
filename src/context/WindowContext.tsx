@@ -21,8 +21,8 @@ export interface WindowModel {
   position: Vec2;
   size: Size2;
   zIndex: number;
-  lastPosition?: Vec2; // Para restaurar después de maximizar
-  lastSize?: Size2; // Para restaurar después de maximizar
+  lastPosition?: Vec2;
+  lastSize?: Size2;
 }
 
 interface WindowContextType {
@@ -76,7 +76,6 @@ export const WindowProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       const existingIndex = prev.findIndex(w => w.id === id);
       
       if (existingIndex !== -1) {
-        // Ventana ya existe, solo la abrimos y traemos al frente
         const updated = [...prev];
         updated[existingIndex] = {
           ...updated[existingIndex],
@@ -87,7 +86,6 @@ export const WindowProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         return updated;
       }
 
-      // Nueva ventana
       const openCount = prev.filter(w => w.isOpen && !w.isMinimized).length;
       const position = generateInitialPosition(openCount, DEFAULT_SIZE);
 
@@ -130,7 +128,6 @@ export const WindowProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         if (w.id !== id) return w;
         
         if (w.isMaximized) {
-          // Restaurar
           return {
             ...w,
             isMaximized: false,
@@ -140,7 +137,6 @@ export const WindowProvider: React.FC<{ children: ReactNode }> = ({ children }) 
             lastSize: undefined,
           };
         } else {
-          // Maximizar
           return {
             ...w,
             isMaximized: true,
