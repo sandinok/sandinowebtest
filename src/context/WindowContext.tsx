@@ -46,6 +46,7 @@ export const useWindows = () => {
 const STORAGE_KEY = 'sandino-windows';
 const BASE_Z = 100;
 
+// posición inicial en cascada con clamp
 const generateInitialPosition = (index: number, ww: number, wh: number): Vec2 => {
   const vw = typeof window !== 'undefined' ? window.innerWidth : 1280;
   const vh = typeof window !== 'undefined' ? window.innerHeight : 800;
@@ -71,12 +72,14 @@ export const WindowProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     windows.length ? Math.max(BASE_Z, ...windows.map(w => w.zIndex)) : BASE_Z
   );
 
+  // persistencia
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(windows));
     } catch {}
   }, [windows]);
 
+  // sync zIndex máximo
   useEffect(() => {
     const mz = windows.length ? Math.max(BASE_Z, ...windows.map(w => w.zIndex)) : BASE_Z;
     if (mz !== maxZ) setMaxZ(mz);
@@ -135,7 +138,7 @@ export const WindowProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     setWindows(prev => prev.map(w => (w.id === id ? { ...w, size } : w)));
   }, []);
 
-  // Clamp en resize de viewport
+  // clamp en resize viewport
   useEffect(() => {
     let raf = 0;
     const onResize = () => {
