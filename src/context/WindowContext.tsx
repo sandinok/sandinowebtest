@@ -1,4 +1,3 @@
-// src/context/WindowContext.tsx
 import React, {
   createContext,
   useContext,
