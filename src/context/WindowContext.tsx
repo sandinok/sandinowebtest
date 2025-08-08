@@ -46,7 +46,6 @@ export const useWindows = () => {
 const STORAGE_KEY = 'sandino-windows';
 const BASE_Z = 100;
 
-// cascada inicial, con clamp
 const generateInitialPosition = (index: number, ww: number, wh: number): Vec2 => {
   const vw = typeof window !== 'undefined' ? window.innerWidth : 1280;
   const vh = typeof window !== 'undefined' ? window.innerHeight : 800;
@@ -55,8 +54,6 @@ const generateInitialPosition = (index: number, ww: number, wh: number): Vec2 =>
   return { x, y };
 };
 
-const snapToGrid = (v: number, grid = 8) => Math.round(v / grid) * grid;
-
 export const WindowProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [windows, setWindows] = useState<WindowModel[]>(() => {
     if (typeof window === 'undefined') return [];
@@ -64,34 +61,22 @@ export const WindowProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return [];
       const parsed = JSON.parse(raw) as WindowModel[];
-      if (!Array.isArray(parsed)) return [];
-      return parsed.map(w => ({
-        id: String(w.id),
-        title: String(w.title ?? ''),
-        isOpen: !!w.isOpen,
-        isMinimized: !!w.isMinimized,
-        isMaximized: !!w.isMaximized,
-        position: w.position ?? { x: 120, y: 120 },
-        size: w.size ?? { width: 600, height: 400 },
-        zIndex: Number.isFinite(w.zIndex) ? w.zIndex : BASE_Z,
-      }));
+      return Array.isArray(parsed) ? parsed : [];
     } catch {
       return [];
     }
   });
 
-  const [maxZ, setMaxZ] = useState<number>(() => {
-    return windows.length ? Math.max(BASE_Z, ...windows.map(w => w.zIndex)) : BASE_Z;
-  });
+  const [maxZ, setMaxZ] = useState<number>(() =>
+    windows.length ? Math.max(BASE_Z, ...windows.map(w => w.zIndex)) : BASE_Z
+  );
 
-  // Persistencia ligera
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(windows));
     } catch {}
   }, [windows]);
 
-  // Sincroniza max Z si carga desde storage modifica
   useEffect(() => {
     const mz = windows.length ? Math.max(BASE_Z, ...windows.map(w => w.zIndex)) : BASE_Z;
     if (mz !== maxZ) setMaxZ(mz);
@@ -143,60 +128,14 @@ export const WindowProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   }, [maxZ, bumpZ]);
 
   const updateWindowPosition = useCallback((id: string, position: Vec2) => {
-    // Clamp + snap suave para evitar jitter visual
-    const vw = typeof window !== 'undefined' ? window.innerWidth : 1280;
-    const vh = typeof window !== 'undefined' ? window.innerHeight : 800;
-    setWindows(prev => prev.map(w => {
-      if (w.id !== id) return w;
-      if (w.isMaximized) return w;
-      const maxX = Math.max(0, vw - w.size.width);
-      const maxY = Math.max(0, vh - w.size.height);
-      const nx = Math.min(Math.max(0, position.x), maxX);
-      const ny = Math.min(Math.max(0, position.y), maxY);
-      return { ...w, position: { x: snapToGrid(nx, 4), y: snapToGrid(ny, 4) } };
-    }));
+    setWindows(prev => prev.map(w => (w.id === id ? { ...w, position } : w)));
   }, []);
 
   const updateWindowSize = useCallback((id: string, size: Size2) => {
-    const vw = typeof window !== 'undefined' ? window.innerWidth : 1280;
-    const vh = typeof window !== 'undefined' ? window.innerHeight : 800;
-    setWindows(prev => prev.map(w => {
-      if (w.id !== id) return w;
-      if (w.isMaximized) return w;
-      const width = Math.min(Math.max(360, size.width), vw);
-      const height = Math.min(Math.max(260, size.height), vh);
-      // clamp posición si se pasa
-      const maxX = Math.max(0, vw - width);
-      const maxY = Math.max(0, vh - height);
-      const x = Math.min(Math.max(0, w.position.x), maxX);
-      const y = Math.min(Math.max(0, w.position.y), maxY);
-      return { ...w, size: { width, height }, position: { x, y } };
-    }));
+    setWindows(prev => prev.map(w => (w.id === id ? { ...w, size } : w)));
   }, []);
 
-  const ctx = useMemo<WindowContextType>(() => ({
-    windows,
-    openWindow,
-    closeWindow,
-    minimizeWindow,
-    maximizeWindow,
-    restoreWindow,
-    bringToFront,
-    updateWindowPosition,
-    updateWindowSize,
-  }), [
-    windows,
-    openWindow,
-    closeWindow,
-    minimizeWindow,
-    maximizeWindow,
-    restoreWindow,
-    bringToFront,
-    updateWindowPosition,
-    updateWindowSize,
-  ]);
-
-  // Clamp automático en resize viewport, con rAF throttle
+  // Clamp en resize de viewport
   useEffect(() => {
     let raf = 0;
     const onResize = () => {
@@ -223,6 +162,28 @@ export const WindowProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       cancelAnimationFrame(raf);
     };
   }, []);
+
+  const ctx = useMemo(() => ({
+    windows,
+    openWindow,
+    closeWindow,
+    minimizeWindow,
+    maximizeWindow,
+    restoreWindow,
+    bringToFront,
+    updateWindowPosition,
+    updateWindowSize,
+  }), [
+    windows,
+    openWindow,
+    closeWindow,
+    minimizeWindow,
+    maximizeWindow,
+    restoreWindow,
+    bringToFront,
+    updateWindowPosition,
+    updateWindowSize,
+  ]);
 
   return <WindowContext.Provider value={ctx}>{children}</WindowContext.Provider>;
 };
