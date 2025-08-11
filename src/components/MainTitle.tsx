@@ -64,7 +64,8 @@ export const MainTitle: React.FC<MainTitleProps> = ({
           className="text-[48px] sm:text-[64px] md:text-[88px] lg:text-[104px] font-bold mb-3 md:mb-4 select-none leading-none relative"
           style={{
             fontFamily: "'Dancing Script', cursive",
-            WebkitTextStroke: '2px rgba(255,255,255,0.95)'
+            WebkitTextStroke: '2px rgba(255,255,255,0.95)',
+            textShadow: '0 2px 8px rgba(0,0,0,0.28)'
           }}
         >
           <span

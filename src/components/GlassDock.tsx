@@ -100,7 +100,7 @@ const DockTile: React.FC<{
       />
       {/* Icon */}
       <div className="relative z-10 w-full h-full flex items-center justify-center">
-        <Icon className="text-white drop-shadow-[0_6px_14px_rgba(0,0,0,0.5)]" size={22} />
+        <Icon className="text-white drop-shadow-[0_8px_18px_rgba(0,0,0,0.6)]" size={22} />
       </div>
     </motion.div>
   );
@@ -199,23 +199,24 @@ export const GlassDock: React.FC = () => {
             <motion.div
               className="relative rounded-[1.8rem] border"
               style={{
-                borderColor: "rgba(255,255,255,0.14)",
+                borderColor: "rgba(0,0,0,0.28)",
                 padding: "12px 14px",
                 background: `
+                  linear-gradient(0deg, rgba(0,0,0,0.12), rgba(0,0,0,0.12)),
                   radial-gradient(90% 80% at 50% 8%,
-                    rgba(255,255,255,0.22) 0%,
-                    rgba(255,255,255,0.10) 44%,
-                    rgba(255,255,255,0.04) 100%
+                    rgba(255,255,255,0.18) 0%,
+                    rgba(255,255,255,0.08) 44%,
+                    rgba(255,255,255,0.03) 100%
                   ),
-                  linear-gradient(135deg, rgba(255,255,255,0.10), rgba(255,255,255,0.04))
+                  linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03))
                 `,
-                backdropFilter: "blur(22px) saturate(170%) brightness(1.10)",
-                WebkitBackdropFilter: "blur(22px) saturate(170%) brightness(1.10)",
+                backdropFilter: "blur(22px) saturate(160%) brightness(1.02)",
+                WebkitBackdropFilter: "blur(22px) saturate(160%) brightness(1.02)",
                 boxShadow: `
-                  0 14px 36px -22px rgba(0,0,0,0.28),
-                  inset 0 0 0 1px rgba(255,255,255,0.14),
-                  inset 0 8px 12px -8px rgba(255,255,255,0.20),
-                  inset 0 -8px 10px -8px rgba(0,0,0,0.10)
+                  0 18px 46px -18px rgba(0,0,0,0.40),
+                  inset 0 0 0 1px rgba(255,255,255,0.12),
+                  inset 0 8px 12px -8px rgba(255,255,255,0.18),
+                  inset 0 -8px 10px -8px rgba(0,0,0,0.12)
                 `,
               }}
               whileHover={{ y: -2 }}
