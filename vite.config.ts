@@ -4,15 +4,20 @@ import path from 'path'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  // Esta es la línea más importante.
-  // Le dice a tu proyecto que vive dentro de la carpeta /sandinowebtest/
-  base: '/sandinowebtest/',
-  
+  // Base condicional:
+  // - Producción (GitHub Pages): /sandinowebtest/
+  // - Desarrollo (vite/preview): /
+  base: process.env.NODE_ENV === 'production' ? '/sandinowebtest/' : '/',
+
   plugins: [react()],
-  
+
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      '@': path.resolve(__dirname, './src'),
     },
+  },
+
+  server: {
+    open: true,
   },
 })
