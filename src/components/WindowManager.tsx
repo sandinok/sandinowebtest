@@ -17,30 +17,29 @@ const Taskbar = memo(() => {
 
   return (
     <motion.div
-      className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-[10000]"
+      className="fixed bottom-5 right-5 z-[10000]"
       initial={{ y: 100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       exit={{ y: 100, opacity: 0 }}
       transition={{ type: "spring", stiffness: 300, damping: 25 }}
     >
       <div
-        className="flex gap-3 px-6 py-4 rounded-2xl backdrop-blur-3xl"
+        className="flex flex-wrap gap-2 px-4 py-3 rounded-2xl"
         style={{
           background: `
-            linear-gradient(135deg, 
-              rgba(0, 0, 0, 0.25) 0%,
-              rgba(0, 0, 0, 0.15) 50%,
-              rgba(0, 0, 0, 0.2) 100%
+            linear-gradient(135deg,
+              rgba(0,0,0,0.22) 0%,
+              rgba(0,0,0,0.14) 55%,
+              rgba(0,0,0,0.18) 100%
             )
           `,
-          backdropFilter: 'blur(40px) saturate(1.5) brightness(1.1)',
-          WebkitBackdropFilter: 'blur(40px) saturate(1.5) brightness(1.1)',
-          border: '1px solid rgba(255, 255, 255, 0.15)',
+          backdropFilter: 'blur(18px) saturate(1.35) brightness(1.06)',
+          WebkitBackdropFilter: 'blur(18px) saturate(1.35) brightness(1.06)',
+          border: '1px solid rgba(255,255,255,0.12)',
           boxShadow: `
-            inset 0 1px 0 rgba(255, 255, 255, 0.2),
-            inset 0 -1px 0 rgba(255, 255, 255, 0.05),
-            0 20px 40px -10px rgba(0, 0, 0, 0.3),
-            0 0 0 1px rgba(255, 255, 255, 0.05)
+            inset 0 1px 0 rgba(255,255,255,0.18),
+            0 14px 28px -10px rgba(0,0,0,0.28),
+            0 0 0 1px rgba(255,255,255,0.05)
           `,
         }}
       >
@@ -53,19 +52,18 @@ const Taskbar = memo(() => {
                 background: 'rgba(255, 255, 255, 0.08)',
                 border: '1px solid rgba(255, 255, 255, 0.12)',
               }}
-              initial={{ scale: 0, opacity: 0, x: -20 }}
-              animate={{ 
-                scale: 1, 
-                opacity: 1, 
-                x: 0,
-                transition: { delay: index * 0.05 }
+              initial={{ opacity: 0, y: 10 }}
+              animate={{
+                opacity: 1,
+                y: 0,
+                transition: { type: 'spring', stiffness: 220, damping: 24, delay: index * 0.04 }
               }}
-              exit={{ scale: 0, opacity: 0, x: 20 }}
-              whileHover={{ 
-                scale: 1.05,
-                y: -2,
-                backgroundColor: 'rgba(255, 255, 255, 0.12)',
-                borderColor: 'rgba(255, 255, 255, 0.2)',
+              exit={{ opacity: 0, y: 10 }}
+              whileHover={{
+                scale: 1.03,
+                y: -1,
+                backgroundColor: 'rgba(255, 255, 255, 0.10)',
+                borderColor: 'rgba(255, 255, 255, 0.18)',
               }}
               whileTap={{ scale: 0.95 }}
               onClick={() => restoreWindow(window.id)}
@@ -154,16 +152,14 @@ export const WindowManager = memo(() => {
   // Layout optimization basado en número de ventanas
   const layoutConfig = useMemo(() => {
     const visibleCount = windowStats.visible;
-    
+
+    // Más suave y eficiente con muchas ventanas
     return {
-      // Reduce animation complexity con muchas ventanas
-      animationQuality: visibleCount > 3 ? 'reduced' : 'high',
-      // Adjust blur intensity basado en performance
-      blurIntensity: visibleCount > 5 ? 'low' : 'high',
-      // Enable/disable certain effects
+      animationQuality: visibleCount > 2 ? 'reduced' : 'high',
+      blurIntensity: visibleCount > 3 ? 'low' : 'high',
       enableParallax: visibleCount <= 2,
-      enableReflections: visibleCount <= 4
-    };
+      enableReflections: visibleCount <= 3,
+    } as const;
   }, [windowStats.visible]);
 
   // Keyboard shortcuts handler
@@ -250,20 +246,6 @@ export const WindowManager = memo(() => {
       <AnimatePresence>
         <Taskbar />
       </AnimatePresence>
-
-      {/* Development stats overlay */}
-      {process.env.NODE_ENV === 'development' && (
-        <motion.div
-          className="fixed top-4 right-4 bg-black/50 backdrop-blur-md text-white p-3 rounded-lg text-xs font-mono z-[10001]"
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 1 }}
-        >
-          <div>Windows: {windowStats.visible}/{windowStats.total}</div>
-          <div>Minimized: {windowStats.minimized}</div>
-          <div>Quality: {layoutConfig.animationQuality}</div>
-        </motion.div>
-      )}
     </>
   );
 });

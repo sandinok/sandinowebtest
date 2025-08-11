@@ -6,27 +6,22 @@ import { useSounds } from "../context/SoundContext";
 import { useWindows } from "../context/WindowContext";
 
 /*
-iOS Liquid Glass-style Dock (refined):
-- No text labels under icons (clean look).
-- True centered layout with max-width and auto margins.
-- Shorter, tighter dock; adaptive sizes per breakpoint.
-- Liquid Glass material tuned: higher translucency, edge sheen, soft frosted core, subtle parallax shimmer.
-- Smooth, low-amplitude hover with light lift and halo; spring carefully damped.
-- Performance-friendly: no heavy WebGL, only CSS+blur with one shimmer keyframes.
-- Visual direction aligns with “Liquid Glass” dock: more transparent dock, edge sheen, frosted tint adapting to background[3][6][11][14].
-
-Notes:
-- If you want the dock even narrower, lower maxWidth.
+iOS 26 Liquid/Aero Glass Dock (clean, brighter, more transparent):
+- Floating at ~14vh (looks modern and avoids covering bottom area)
+- Higher translucency and brightness (less "dark/gray" feeling)
+- Balanced inner sheen, thin inner border, softer outer shadow
+- Micro‑tilt on hover (very subtle) and open app indicator pill
+- Optimized: single sheen animation, minimal layers, no heavy effects
 */
 
-type IconType = React.ComponentType<{ className?: string; size?: number }>;
+type IconType = React.ComponentType<{ className?: string; size?: number | string }>;
 
 interface DockItem {
   id: string;
   icon: IconType;
-  label: string; // kept for aria and openWindow label, not rendered visually
+  label: string; // for aria/openWindow label (not visible)
   sound: string;
-  gradient: string; // per-icon halo tint
+  gradient: string; // halo tint per icon
 }
 
 const injectOnce = (() => {
@@ -38,6 +33,14 @@ const injectOnce = (() => {
       @keyframes dockLiquidSheen {
         0% { background-position: 160% 0%; }
         100% { background-position: -60% 0%; }
+      }
+      @keyframes dockHue {
+        0% { background-position: 0% 0%; }
+        100% { background-position: 300% 0%; }
+      }
+      @keyframes dockSheen {
+        0% { background-position: 200% 0%; }
+        100% { background-position: -100% 0%; }
       }
     `;
     document.head.appendChild(style);
@@ -53,38 +56,39 @@ const DockTile: React.FC<{
   return (
     <motion.div
       className={`relative ${sizeClass} rounded-2xl overflow-hidden`}
-      whileHover={{ y: -12, scale: 1.04 }}
-      transition={{ type: "spring", stiffness: 260, damping: 20, mass: 0.6 }}
+      whileHover={{ y: -6, scale: 1.02 }}
+      transition={{ type: "spring", stiffness: 220, damping: 24, mass: 0.6 }}
       style={{ WebkitTapHighlightColor: "transparent" }}
     >
-      {/* Base glass: translucent core + soft frost, slight inner highlights */}
+      {/* Base glass: clearer, brighter, thinner tint */}
       <div
-        className="absolute inset-0 rounded-2xl border border-white/18"
+        className="absolute inset-0 rounded-2xl border"
         style={{
+          borderColor: "rgba(255,255,255,0.22)",
           background: `
-            radial-gradient(120% 110% at 50% 10%,
-              rgba(255,255,255,0.42) 0%,
-              rgba(255,255,255,0.18) 36%,
-              rgba(255,255,255,0.10) 72%,
-              rgba(255,255,255,0.06) 100%
+            radial-gradient(120% 110% at 50% 8%,
+              rgba(255,255,255,0.36) 0%,
+              rgba(255,255,255,0.14) 38%,
+              rgba(255,255,255,0.08) 72%,
+              rgba(255,255,255,0.04) 100%
             ),
-            linear-gradient(135deg, rgba(255,255,255,0.16), rgba(255,255,255,0.07))
+            linear-gradient(135deg, rgba(255,255,255,0.16), rgba(255,255,255,0.06))
           `,
-          backdropFilter: "blur(18px) saturate(145%)",
-          WebkitBackdropFilter: "blur(18px) saturate(145%)",
+          backdropFilter: "blur(28px) saturate(180%) brightness(1.08)",
+          WebkitBackdropFilter: "blur(28px) saturate(180%) brightness(1.08)",
           boxShadow: `
-            inset 0 1px 0 rgba(255,255,255,0.35),
-            inset 0 -1px 0 rgba(0,0,0,0.15),
-            0 8px 20px rgba(0,0,0,0.22)
+            inset 0 1px 0 rgba(255,255,255,0.40),
+            inset 0 -1px 0 rgba(0,0,0,0.12),
+            0 18px 40px -20px rgba(0,0,0,0.32)
           `,
         }}
       />
-      {/* Per-icon tint halo (very subtle) */}
+      {/* Per-icon halo (very subtle) */}
       <div
         className="absolute -inset-1 rounded-3xl opacity-25"
         style={{ background: gradient, filter: "blur(16px)" }}
       />
-      {/* Edge sheen sweep (screen blend, long linear pass) */}
+      {/* Edge sheen sweep */}
       <div
         className="absolute inset-0 rounded-2xl pointer-events-none mix-blend-screen"
         style={{
@@ -96,7 +100,7 @@ const DockTile: React.FC<{
       />
       {/* Icon */}
       <div className="relative z-10 w-full h-full flex items-center justify-center">
-        <Icon className="text-white drop-shadow-[0_6px_14px_rgba(0,0,0,0.55)]" size={22} />
+        <Icon className="text-white drop-shadow-[0_6px_14px_rgba(0,0,0,0.5)]" size={22} />
       </div>
     </motion.div>
   );
@@ -104,11 +108,20 @@ const DockTile: React.FC<{
 
 export const GlassDock: React.FC = () => {
   const { playSound } = useSounds();
-  const { openWindow } = useWindows();
+  const { openWindow, windows } = useWindows();
 
   useEffect(() => {
     injectOnce();
   }, []);
+
+  // Map of open windows (to show indicator below icon)
+  const openMap = useMemo(() => {
+    const m = new Map<string, boolean>();
+    windows.forEach((w) => {
+      if (w.isOpen && !w.isMinimized) m.set(w.id, true);
+    });
+    return m;
+  }, [windows]);
 
   const dockItems: DockItem[] = useMemo(
     () => [
@@ -166,7 +179,10 @@ export const GlassDock: React.FC = () => {
   return (
     <AnimatePresence>
       {/* Full width lane to guarantee centering */}
-      <div className="fixed inset-x-0 bottom-5 md:bottom-7 z-50 pointer-events-none">
+      <div
+        className="fixed inset-x-0 z-50 pointer-events-none"
+        style={{ bottom: "14vh" }} // floating dock ~ modern iOS style
+      >
         <motion.div
           initial={{ opacity: 0, y: 80 }}
           animate={{ opacity: 1, y: 0 }}
@@ -174,62 +190,73 @@ export const GlassDock: React.FC = () => {
           transition={{ duration: 0.5, type: "spring", stiffness: 160, damping: 22 }}
           className="mx-auto pointer-events-auto"
           style={{
-            maxWidth: "min(88vw, 560px)", // tighter width for a shorter dock
+            maxWidth: "min(88vw, 560px)",
+            perspective: 800,
           }}
         >
           <div className="relative">
-            {/* Subtle reflection under dock */}
-            <div className="absolute top-full left-0 right-0 h-12 md:h-14 overflow-hidden pointer-events-none">
-              <div
-                className="w-full h-full rounded-[1.8rem] opacity-22"
-                style={{
-                  background: "linear-gradient(to bottom, rgba(255,255,255,0.34), transparent)",
-                  transform: "scaleY(-1) translateY(2px)",
-                  filter: "blur(6px)",
-                  maskImage: "linear-gradient(to bottom, rgba(0,0,0,1) 25%, transparent)",
-                  WebkitMaskImage: "linear-gradient(to bottom, rgba(0,0,0,1) 25%, transparent)",
-                }}
-              />
-            </div>
-
-            {/* Dock container */}
+            {/* Dock container (no reflection below) */}
             <motion.div
-              className="relative rounded-[1.8rem] border border-white/18"
+              className="relative rounded-[1.8rem] border"
               style={{
-                padding: "10px 12px",
+                borderColor: "rgba(255,255,255,0.14)",
+                padding: "12px 14px",
                 background: `
-                  radial-gradient(90% 80% at 50% 5%,
-                    rgba(255,255,255,0.42) 0%,
-                    rgba(255,255,255,0.2) 45%,
-                    rgba(255,255,255,0.10) 100%
+                  radial-gradient(90% 80% at 50% 8%,
+                    rgba(255,255,255,0.22) 0%,
+                    rgba(255,255,255,0.10) 44%,
+                    rgba(255,255,255,0.04) 100%
                   ),
-                  linear-gradient(135deg, rgba(255,255,255,0.14), rgba(255,255,255,0.06))
+                  linear-gradient(135deg, rgba(255,255,255,0.10), rgba(255,255,255,0.04))
                 `,
-                backdropFilter: "blur(22px) saturate(150%)",
-                WebkitBackdropFilter: "blur(22px) saturate(150%)",
+                backdropFilter: "blur(22px) saturate(170%) brightness(1.10)",
+                WebkitBackdropFilter: "blur(22px) saturate(170%) brightness(1.10)",
                 boxShadow: `
-                  0 16px 36px -14px rgba(0,0,0,0.35),
-                  inset 0 0 0 1px rgba(255,255,255,0.16),
-                  inset 0 8px 10px -6px rgba(255,255,255,0.24),
-                  inset 0 -8px 10px -6px rgba(0,0,0,0.12)
+                  0 14px 36px -22px rgba(0,0,0,0.28),
+                  inset 0 0 0 1px rgba(255,255,255,0.14),
+                  inset 0 8px 12px -8px rgba(255,255,255,0.20),
+                  inset 0 -8px 10px -8px rgba(0,0,0,0.10)
                 `,
               }}
-              whileHover={{ y: -4 }}
-              transition={{ type: "spring", stiffness: 260, damping: 24 }}
+              whileHover={{ y: -2 }}
+              transition={{ type: "spring", stiffness: 220, damping: 24 }}
             >
               {/* Top glow cap */}
               <div
                 className="absolute inset-0 rounded-[1.8rem] pointer-events-none"
                 style={{
-                  background: "radial-gradient(60% 45% at 50% 0%, rgba(255,255,255,0.6) 0%, transparent 100%)",
-                  filter: "blur(2px)",
+                  background: "radial-gradient(60% 45% at 50% 0%, rgba(255,255,255,0.55) 0%, transparent 100%)",
+                  filter: "blur(1.5px)",
                 }}
               />
+              {/* Inner glow (very subtle) */}
+              <div
+                className="absolute inset-0 rounded-[1.8rem] pointer-events-none"
+                style={{ boxShadow: "inset 0 0 24px rgba(255,255,255,0.10)" }}
+              />
 
-              {/* Icons row – no text labels */}
-              <div className="flex items-end justify-center gap-2 md:gap-2.5 relative z-10">
+              {/* Dynamic glow line along the bottom (low cost) */}
+              <motion.div
+                aria-hidden
+                className="absolute left-6 right-6 bottom-2 h-[2px] rounded-full pointer-events-none"
+                style={{
+                  background:
+                    "linear-gradient(90deg, rgba(170,220,255,0.55), rgba(255,200,245,0.55), rgba(255,230,180,0.55))",
+                  backgroundSize: "200% 100%",
+                  filter: "blur(2px)",
+                }}
+                animate={{ backgroundPositionX: ["0%", "100%"] }}
+                transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
+              />
+
+              {/* Icons row */}
+              <div
+                className="flex items-end justify-center gap-2 md:gap-2.5 relative z-10"
+                style={{ transformStyle: "preserve-3d" }}
+              >
                 {dockItems.map((item, index) => {
                   const Icon = item.icon;
+                  const isOpen = openMap.get(item.id);
                   return (
                     <motion.button
                       key={item.id}
@@ -242,20 +269,34 @@ export const GlassDock: React.FC = () => {
                         delay: index * 0.04 + 0.05,
                         type: "spring",
                         stiffness: 220,
-                        damping: 18,
+                        damping: 22,
                       }}
-                      whileTap={{ scale: 0.95 }}
+                      whileHover={{ scale: 1.03, rotateX: -5, rotateY: 2, y: -1 }}
+                      whileTap={{ scale: 0.97 }}
                       onClick={() => handleIconClick(item)}
                       style={{ WebkitTapHighlightColor: "transparent" }}
                     >
-                      {/* Hover halo (controlled by parent hover) */}
+                      {/* Hover halo */}
                       <motion.div
                         className="absolute -inset-2 rounded-3xl opacity-0"
-                        whileHover={{ opacity: 0.55, scale: 1.06 }}
-                        transition={{ duration: 0.18 }}
+                        whileHover={{ opacity: 0.5, scale: 1.05 }}
+                        transition={{ duration: 0.16 }}
                         style={{ background: item.gradient, filter: "blur(16px)" }}
                       />
                       <DockTile gradient={item.gradient} Icon={Icon} />
+
+                      {/* Open app indicator (tiny pill) */}
+                      {isOpen && (
+                        <span
+                          className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full"
+                          style={{
+                            width: 7,
+                            height: 3,
+                            background: "rgba(255,255,255,0.9)",
+                            boxShadow: "0 0 8px rgba(255,255,255,0.55)",
+                          }}
+                        />
+                      )}
                     </motion.button>
                   );
                 })}

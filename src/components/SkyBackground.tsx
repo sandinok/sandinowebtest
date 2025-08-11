@@ -2,28 +2,25 @@
 import React, { useEffect, useRef } from "react";
 
 /*
-Fix build error:
-- The error came from reusing variable names "vs" and "fs" for both source strings and compiled shaders.
-- Renamed shader source variables to vsSource/fsSource and compiled shader handles to vShader/fShader.
-- Also kept the latest optimized, stable version.
-
-Features:
-- Smooth sky-dawn motion, stable grading, subtle dither (anti-banding).
-- Optional day/night cycle and rain (visible), with simple props.
-- Fixed DPR and quality defaults for stability; pauses offscreen.
+Ultra-smooth background (performance-first):
+- DPR fijo = 1 (evita overdraw en GPUs débiles).
+- Sin lluvia, sin estrellas, sin paneles ni emisiones de eventos por frame.
+- Ciclo día/tarde/noche suave y barato.
+- Pasos del shader adaptativos (54–58) con control agresivo para sostener 50–60 fps.
 */
 
 type Props = {
   enableDayNight?: boolean;
   dayNightCycleSec?: number;
-  rainIntensity?: number;
-  enableAutoRain?: boolean;
-  lowPowerMode?: boolean;
+  rainIntensity?: number;       // ignorado (siempre 0)
+  enableAutoRain?: boolean;     // ignorado (siempre false)
+  lowPowerMode?: boolean;       // por si se quiere forzar
 };
 
 export const SkyBackground: React.FC<Props> = ({
   enableDayNight = true,
   dayNightCycleSec = 120,
+  // ignorados pero mantenidos para compat
   rainIntensity = 0,
   enableAutoRain = false,
   lowPowerMode = false,
@@ -41,11 +38,15 @@ export const SkyBackground: React.FC<Props> = ({
     u_enableDayNight: WebGLUniformLocation | null;
   } | null>(null);
   const noiseTexRef = useRef<WebGLTexture | null>(null);
+
   const rafRef = useRef<number | null>(null);
   const startRef = useRef<number>(0);
   const lastTSRef = useRef<number>(performance.now());
   const visibleRef = useRef<boolean>(true);
   const inViewRef = useRef<boolean>(true);
+
+  // Calidad adaptativa
+  const qualityRef = useRef<number>(56); // punto de partida
 
   useEffect(() => {
     const canvas = canvasRef.current!;
@@ -68,14 +69,15 @@ export const SkyBackground: React.FC<Props> = ({
       void main() { gl_Position = vec4(a_position, 0.0, 1.0); }
     `;
 
+    // Shader: sin estrellas/lluvia, solo ciclo suave con color grading ligero
     const fsSource = `
       precision mediump float;
       uniform vec2 u_resolution;
       uniform float u_time;
       uniform sampler2D u_noise;
-      uniform float u_quality;         // 56..64
+      uniform float u_quality;         // 54..58
       uniform float u_phase;           // 0..1
-      uniform float u_rain;            // 0..1
+      uniform float u_rain;            // 0 (no usado)
       uniform float u_enableDayNight;  // 0/1
 
       float dither8x8(vec2 p) {
@@ -100,94 +102,82 @@ export const SkyBackground: React.FC<Props> = ({
       }
       float trigNoise3D(in vec3 p) {
         float res = 0.0;
-        float n = pn(p*7.8 + u_time*0.075);
+        float n = pn(p*7.6 + u_time*0.07);
         vec3 t = sin(p*3.14159265 + cos(p*3.14159265+1.57/2.0))*0.5 + 0.5;
-        p = p*1.32 + (t - 1.32);
+        p = p*1.28 + (t - 1.28);
         res += (dot(t, vec3(0.333)));
         t = sin(p.yzx*3.14159265 + cos(p.zxy*3.14159265+1.57/2.0))*0.5 + 0.5;
         res += (dot(t, vec3(0.333)))*0.7071;    
         return ((res/1.7071))*0.85 + n*0.15;
       }
       float world(vec3 p) {
-        float n = trigNoise3D(p * 0.092) * 9.3;
+        float n = trigNoise3D(p * 0.09) * 8.8;
         p.y += n;
         return p.y - 3.0;
       }
       vec3 path(float p) {
-        return vec3(sin(p*0.034)*7.4, cos(p*0.22)*0.8, p);
+        return vec3(sin(p*0.034)*6.8, cos(p*0.21)*0.75, p);
       }
 
       vec3 gradeBase(vec3 col, float sunF, float density, float travelled) {
         vec3 baseShadow = vec3(0.02, 0.035, 0.07);
-        vec3 warm = vec3(0.40, 0.30, 0.22)*2.7;
-        vec3 cool = vec3(0.20, 0.42, 0.74)*0.88;
+        vec3 warm = vec3(0.40, 0.30, 0.22)*2.5;
+        vec3 cool = vec3(0.20, 0.42, 0.74)*0.86;
 
         col = mix(
-          mix(vec3(0.47), vec3(1.0), col * density * 4.6),
+          mix(vec3(0.47), vec3(1.0), col * density * 4.2),
           baseShadow,
           col
         );
-        col = mix(col, vec3(3.4), (5.0 - density)*0.009*(1.0 + sunF*0.46));
-        col = mix(col, mix(warm, cool, sunF*sunF), travelled*0.0088);
-        col *= col*col*2.0;
+        col = mix(col, vec3(3.2), (5.0 - density)*0.009*(1.0 + sunF*0.46));
+        col = mix(col, mix(warm, cool, sunF*sunF), travelled*0.0085);
+        col *= col*2.0;
         return col;
       }
 
       vec3 applyDayNight(vec3 col, float phase) {
         if (u_enableDayNight < 0.5) return col;
         float p = fract(phase);
-        float A = smoothstep(0.95, 1.0, p) + smoothstep(0.0, 0.1, p) - smoothstep(0.1, 0.2, p);
-        float D = smoothstep(0.15, 0.35, p) - smoothstep(0.35, 0.45, p);
-        float S = smoothstep(0.45, 0.55, p) - smoothstep(0.55, 0.68, p);
-        float N = smoothstep(0.68, 0.88, p) - smoothstep(0.88, 0.98, p);
-        float sum = max(0.0001, A + D + S + N);
-        A /= sum; D /= sum; S /= sum; N /= sum;
+        float cyc = cos(p * 6.2831853);
+        float day = smoothstep(-0.15, 0.6, cyc);
+        float night = 1.0 - day;
 
-        vec3 tintA = vec3(1.06, 0.95, 1.08);
-        vec3 tintD = vec3(1.03, 1.03, 1.03);
-        vec3 tintS = vec3(1.10, 0.96, 0.90);
-        vec3 tintN = vec3(0.78, 0.92, 1.12);
-        vec3 mixed = col * (tintA*A + tintD*D + tintS*S + tintN*N);
+        float sunrise = exp(-pow((p - 0.23) / 0.13, 2.0));
+        float sunset  = exp(-pow((p - 0.77) / 0.13, 2.0));
+        float golden  = clamp(sunrise + sunset, 0.0, 1.0);
 
-        float exposure = 0.92 + 0.14*D + 0.04*A + 0.02*S - 0.12*N;
+        vec3 dayTint    = vec3(1.05, 1.04, 1.02);
+        vec3 nightTint  = vec3(0.80, 0.90, 1.14);
+        vec3 goldenTint = vec3(1.12, 1.00, 0.92);
+
+        vec3 mixed = col * (dayTint * day + nightTint * night);
+        mixed = mix(mixed, mixed * goldenTint, golden * 0.58);
+
+        float exposure = mix(0.82, 1.06, day) + golden * 0.05;
         return mixed * exposure;
-      }
-
-      vec3 applyRain(vec3 col, vec2 frag, float intensity) {
-        if (intensity <= 0.001) return col;
-        vec2 dir = normalize(vec2(-0.6, -1.0));
-        float freq = 120.0;
-        float speed = 180.0;
-        float phase = dot(frag, dir) * freq + u_time * speed;
-        float stripe = smoothstep(0.45, 0.5, fract(phase)) * smoothstep(0.55, 0.5, fract(phase));
-        stripe = pow(stripe, 0.8);
-        float mask = stripe * (0.18 + 0.42 * intensity);
-        vec3 rainColor = vec3(0.65, 0.80, 1.0) * (0.25 + 0.55*intensity);
-        vec3 outCol = 1.0 - (1.0 - col) * (1.0 - rainColor * mask);
-        return mix(col, outCol, clamp(intensity, 0.0, 1.0));
       }
 
       void main() {
         vec2 aspect = vec2(u_resolution.x/u_resolution.y, 1.0);
         vec2 uv = (2.0*gl_FragCoord.xy/u_resolution.xy - 1.0)*aspect;
 
-        float modtime = u_time * 1.78;
+        float modtime = u_time * 1.64;
         vec3 movement = path(modtime);
         
-        vec3 lookAt = vec3(0.0, -0.17, 0.0) + path(modtime + 0.88);
+        vec3 lookAt = vec3(0.0, -0.16, 0.0) + path(modtime + 0.84);
         vec3 camera_position = vec3(0.0, 0.0, -1.0) + movement;
 
         vec3 forward = normalize(lookAt - camera_position);
         vec3 right = normalize(vec3(forward.z, 0.0, -forward.x ));
         vec3 up = normalize(cross(forward,right));
 
-        float FOV = 0.78;
+        float FOV = 0.76; // ligeramente menor para ahorrar algo
 
         vec3 ro = camera_position; 
         vec3 rd = normalize(forward + FOV*uv.x*right + FOV*uv.y*up);
-        rd.xy = rot2( movement.x * 0.032 ) * rd.xy;
+        rd.xy = rot2( movement.x * 0.03 ) * rd.xy;
 
-        vec3 lp = vec3( 0.0, -10.0, 10.5) + ro;
+        vec3 lp = vec3( 0.0, -10.0, 10.2) + ro;
 
         float density = 0.0;
         float dist = 1.0;
@@ -197,12 +187,12 @@ export const SkyBackground: React.FC<Props> = ({
         vec3 col = vec3(0.0);
         vec3 sp;
 
-        int steps = int(clamp(u_quality, 56.0, 64.0));
+        int steps = int(clamp(u_quality, 54.0, 58.0));
 
-        for (int i=0; i<64; i++) {
+        for (int i=0; i<58; i++) {
           if (i >= steps) break;
-          if ((density>1.0) || travelled>80.0) {
-            travelled = 80.0;
+          if ((density>1.0) || travelled>76.0) {
+            travelled = 76.0;
             break;
           }
 
@@ -213,15 +203,15 @@ export const SkyBackground: React.FC<Props> = ({
           float local_density = (distanceThreshold - dist)*step(dist, distanceThreshold);
           float weighting = (1.0 - density)*local_density;
 
-          density += weighting*(1.0 - distanceThreshold)*1.0/dist*0.1;
+          density += weighting*(1.0 - distanceThreshold)*1.0/dist*0.095;
 
           vec3 ld = lp-sp;
           float lDist = max(length(ld), 0.001);
           ld/=lDist;
 
-          float atten = 1.0/(1.0 + lDist*0.125 + lDist*lDist*0.55);
-          col += weighting*atten*1.2;
-          travelled += max(dist*0.2, 0.02);
+          float atten = 1.0/(1.0 + lDist*0.12 + lDist*lDist*0.52);
+          col += weighting*atten*1.15;
+          travelled += max(dist*0.19, 0.02);
         }
         
         vec3 sunDir = normalize(lp-ro);
@@ -230,10 +220,12 @@ export const SkyBackground: React.FC<Props> = ({
         col = gradeBase(col, sunF, density, travelled);
         col = applyDayNight(col, u_phase);
 
-        col = applyRain(col, gl_FragCoord.xy / u_resolution.y, u_rain);
+        // Pequeña vibración cromática MUY barata (vida sin jank)
+        float vib = 0.018 * sin(u_time * 0.055) + 0.012 * sin(u_time * 0.1 + 1.2);
+        col *= vec3(1.0 + 0.028 * vib, 1.0 + 0.018 * vib, 1.0);
 
+        // Sin estrellas / sin lluvia
         col += dither8x8(gl_FragCoord.xy);
-
         gl_FragColor = vec4(col, 1.0);
       }
     `;
@@ -283,30 +275,35 @@ export const SkyBackground: React.FC<Props> = ({
     const u_enableDayNight = gl.getUniformLocation(program, "u_enableDayNight");
     uRef.current = { u_time, u_resolution, u_noise, u_quality, u_phase, u_rain, u_enableDayNight };
 
-    // Noise texture
-    const noiseTex = gl.createTexture()!;
-    noiseTexRef.current = noiseTex;
-    gl.bindTexture(gl.TEXTURE_2D, noiseTex);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.src = "https://s3-us-west-2.amazonaws.com/s.cdpn.io/982762/noise.png";
-    img.onload = () => {
-      gl.bindTexture(gl.TEXTURE_2D, noiseTex);
-      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
-      resize(true);
-      startRef.current = performance.now();
-      loop();
+    // Textura de ruido en GPU
+    const createNoiseTexture = (glc: WebGLRenderingContext) => {
+      const size = 256;
+      const pixels = new Uint8Array(size * size * 4);
+      for (let i = 0; i < pixels.length; i += 4) {
+        const v = Math.random() * 255;
+        pixels[i + 0] = v;
+        pixels[i + 1] = Math.random() * 255;
+        pixels[i + 2] = Math.random() * 255;
+        pixels[i + 3] = 255;
+      }
+      const tex = glc.createTexture()!;
+      glc.bindTexture(glc.TEXTURE_2D, tex);
+      glc.texParameteri(glc.TEXTURE_2D, glc.TEXTURE_WRAP_S, glc.REPEAT);
+      glc.texParameteri(glc.TEXTURE_2D, glc.TEXTURE_WRAP_T, glc.REPEAT);
+      glc.texParameteri(glc.TEXTURE_2D, glc.TEXTURE_MIN_FILTER, glc.LINEAR);
+      glc.texParameteri(glc.TEXTURE_2D, glc.TEXTURE_MAG_FILTER, glc.LINEAR);
+      glc.texImage2D(glc.TEXTURE_2D, 0, glc.RGBA, size, size, 0, glc.RGBA, glc.UNSIGNED_BYTE, pixels);
+      return tex;
     };
 
+    const noiseTex = createNoiseTexture(gl);
+    noiseTexRef.current = noiseTex;
+
     const resize = (initial = false) => {
-      const dpr = lowPowerMode ? 1.0 : 1.25;
-      const w = Math.floor(window.innerWidth * dpr);
-      const h = Math.floor(window.innerHeight * dpr);
+      // DPR fijo a 1 para estabilidad
+      const baseDpr = 1.0;
+      const w = Math.floor(window.innerWidth * baseDpr);
+      const h = Math.floor(window.innerHeight * baseDpr);
       if (canvas.width !== w || canvas.height !== h) {
         canvas.width = w;
         canvas.height = h;
@@ -316,9 +313,9 @@ export const SkyBackground: React.FC<Props> = ({
         gl.uniform2f(uRef.current.u_resolution, w, h);
       }
       if (initial) {
-        if (uRef.current?.u_quality) gl.uniform1f(uRef.current.u_quality, lowPowerMode ? 56 : 64);
+        if (uRef.current?.u_quality) gl.uniform1f(uRef.current.u_quality, 56);
         if (uRef.current?.u_enableDayNight) gl.uniform1f(uRef.current.u_enableDayNight, enableDayNight ? 1.0 : 0.0);
-        if (uRef.current?.u_rain) gl.uniform1f(uRef.current.u_rain, rainIntensity);
+        if (uRef.current?.u_rain) gl.uniform1f(uRef.current.u_rain, 0.0); // siempre 0
       }
     };
 
@@ -332,26 +329,24 @@ export const SkyBackground: React.FC<Props> = ({
       const dt = now - lastTSRef.current;
       lastTSRef.current = now;
 
-      const t = (now - startRef.current) * 0.0015 - 11200.0;
+      // Ajuste agresivo de pasos para sostener fps
+      const stepDelta = dt > 17 ? -1.0 : 0.15; // > ~58fps baja pasos, si va bien sube un poco
+      qualityRef.current = Math.max(54, Math.min(58, qualityRef.current + stepDelta));
+      if (uRef.current?.u_quality) gl.uniform1f(uRef.current.u_quality, qualityRef.current);
+
+      const t = (now - startRef.current) * 0.0014 - 11200.0;
 
       let phaseWrap = 0.0;
       if (enableDayNight) {
         const phase = (now - startRef.current) / (dayNightCycleSec * 1000);
         phaseWrap = phase - Math.floor(phase);
-      }
-
-      let rain = rainIntensity;
-      if (enableAutoRain) {
-        const slow = 0.5 + 0.5 * Math.sin(now * 0.00025 + 1.0);
-        const nightBias = enableDayNight ? Math.max(0.0, Math.cos(phaseWrap * 6.28318)) : 0.6;
-        const auto = 0.5 * slow * (0.35 + 0.65 * nightBias);
-        rain = Math.min(1.0, Math.max(rainIntensity, auto));
+        // No emitimos eventos ni CSS vars
       }
 
       gl.useProgram(programRef.current!);
       if (uRef.current?.u_time) gl.uniform1f(uRef.current.u_time, t);
       if (uRef.current?.u_phase) gl.uniform1f(uRef.current.u_phase, phaseWrap);
-      if (uRef.current?.u_rain) gl.uniform1f(uRef.current.u_rain, rain);
+      if (uRef.current?.u_rain) gl.uniform1f(uRef.current.u_rain, 0.0);
       if (uRef.current?.u_noise) {
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, noiseTexRef.current);
@@ -363,7 +358,7 @@ export const SkyBackground: React.FC<Props> = ({
     };
 
     const onResize = () => {
-      cancelAnimationFrame(rafRef.current!);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
       resize();
       rafRef.current = requestAnimationFrame(loop);
     };
@@ -384,6 +379,10 @@ export const SkyBackground: React.FC<Props> = ({
     window.addEventListener("resize", onResize, { passive: true });
     document.addEventListener("visibilitychange", onVisibility, false);
 
+    resize(true);
+    startRef.current = performance.now();
+    rafRef.current = requestAnimationFrame(loop);
+
     return () => {
       io.disconnect();
       window.removeEventListener("resize", onResize);
@@ -393,7 +392,7 @@ export const SkyBackground: React.FC<Props> = ({
       if (noiseTexRef.current) gl.deleteTexture(noiseTexRef.current);
       glRef.current = null;
     };
-  }, [enableDayNight, dayNightCycleSec, rainIntensity, enableAutoRain, lowPowerMode]);
+  }, [enableDayNight, dayNightCycleSec, lowPowerMode]);
 
   return (
     <canvas
