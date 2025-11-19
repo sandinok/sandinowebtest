@@ -1,13 +1,13 @@
-// src/components/DockIcon.tsx
-import React, { useState } from 'react';
-import { motion, useMotionValue, useTransform } from 'framer-motion';
+import React, { useRef } from 'react';
+import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import type { LucideIcon } from 'lucide-react';
 
 interface DockIconProps {
   icon: LucideIcon;
   label: string;
-  gradient: string;
+  gradient: string; // Espera formato CSS "linear-gradient(...)"
   onClick: () => void;
+  isOpen?: boolean;
 }
 
 export const DockIcon: React.FC<DockIconProps> = ({
@@ -15,191 +15,97 @@ export const DockIcon: React.FC<DockIconProps> = ({
   label,
   gradient,
   onClick,
+  isOpen
 }) => {
-  const [isHovered, setIsHovered] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Físicas de mouse para el efecto Tilt (Paralaje)
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
-  
-  const rotateX = useTransform(mouseY, [-50, 50], [5, -5]);
-  const rotateY = useTransform(mouseX, [-50, 50], [-5, 5]);
-  
+
+  // Springs suaves para el movimiento
+  const springConfig = { damping: 25, stiffness: 400, mass: 0.5 };
+  const x = useSpring(mouseX, springConfig);
+  const y = useSpring(mouseY, springConfig);
+
+  // Transformaciones de rotación sutiles
+  const rotateX = useTransform(y, [-0.5, 0.5], [10, -10]);
+  const rotateY = useTransform(x, [-0.5, 0.5], [-10, 10]);
+
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left - rect.width / 2;
-    const y = e.clientY - rect.top - rect.height / 2;
+    if (!ref.current) return;
+    const rect = ref.current.getBoundingClientRect();
+    const width = rect.width;
+    const height = rect.height;
+    const mouseXFromCenter = e.clientX - (rect.left + width / 2);
+    const mouseYFromCenter = e.clientY - (rect.top + height / 2);
     
-    mouseX.set(x);
-    mouseY.set(y);
+    // Normalizamos valores entre -0.5 y 0.5
+    mouseX.set(mouseXFromCenter / width);
+    mouseY.set(mouseYFromCenter / height);
+  };
+
+  const handleMouseLeave = () => {
+    mouseX.set(0);
+    mouseY.set(0);
   };
 
   return (
-    <div 
-      className="relative group cursor-pointer"
-      onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => {
-        setIsHovered(false);
-        mouseX.set(0);
-        mouseY.set(0);
-      }}
-      onClick={onClick}
-    >
-      <motion.div
-        className="relative w-16 h-16 rounded-2xl flex items-center justify-center overflow-hidden"
-        style={{
-          background: gradient,
-          boxShadow: `
-            0 12px 30px rgba(0, 0, 0, 0.4),
-            0 6px 12px rgba(0, 0, 0, 0.2),
-            0 0 0 1px rgba(255, 255, 255, 0.2),
-            inset 0 1px 0 rgba(255, 255, 255, 0.3),
-            inset 0 -1px 0 rgba(0, 0, 0, 0.2)
-          `,
-          transformStyle: 'preserve-3d',
-        }}
-        animate={{
-          scale: isHovered ? 1.3 : 1,
-          y: isHovered ? -15 : 0,
-        }}
-        transition={{ 
-          type: "spring", 
-          stiffness: 400, 
-          damping: 25 
-        }}
-      >
-        {/* Superficie reflectiva */}
-        <div 
-          className="absolute inset-0 rounded-2xl opacity-30"
-          style={{
-            background: `
-              linear-gradient(135deg, 
-                rgba(255, 255, 255, 0.6) 0%, 
-                transparent 30%,
-                transparent 70%,
-                rgba(255, 255, 255, 0.2) 100%
-              )
-            `,
-          }}
-        />
-        
-        {/* Icono con efectos de profundidad */}
-        <motion.div
-          style={{ 
-            rotateX,
-            rotateY,
-            transformStyle: 'preserve-3d',
-          }}
-          className="relative z-10"
-        >
-          <Icon 
-            size={28} 
-            className="text-white"
-            style={{ 
-              filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3))',
-              transform: 'translateZ(10px)',
-            }}
-          />
-        </motion.div>
-        
-        {/* Efecto de brillo dinámico */}
-        <motion.div
-          className="absolute inset-0 rounded-2xl opacity-0"
-          animate={{
-            opacity: isHovered ? [0, 0.4, 0] : 0,
-            background: [
-              'linear-gradient(45deg, transparent 0%, transparent 100%)',
-              'linear-gradient(45deg, transparent 0%, rgba(255, 255, 255, 0.8) 50%, transparent 100%)',
-              'linear-gradient(45deg, transparent 0%, transparent 100%)',
-            ],
-          }}
-          transition={{ duration: 0.6 }}
-        />
-        
-        {/* Glow alrededor del icono */}
-        <motion.div
-          className="absolute inset-0 rounded-2xl opacity-0"
-          animate={{
-            opacity: isHovered ? 0.6 : 0,
-            scale: isHovered ? 1.4 : 1,
-          }}
-          transition={{ duration: 0.3 }}
-          style={{
-            background: gradient,
-            filter: 'blur(20px)',
-            zIndex: -1,
-          }}
-        />
-      </motion.div>
-      
-      {/* Etiqueta con glassmorphism */}
-      <motion.div
-        initial={{ opacity: 0, y: 10, scale: 0.8 }}
-        animate={{ 
-          opacity: isHovered ? 1 : 0, 
-          y: isHovered ? 0 : 10, 
-          scale: isHovered ? 1 : 0.8 
-        }}
-        transition={{ 
-          type: "spring", 
-          stiffness: 400, 
-          damping: 25,
-        }}
-        className="absolute -bottom-10 left-1/2 transform -translate-x-1/2 whitespace-nowrap"
-      >
-        <div 
-          className="px-3 py-2 text-xs text-white font-semibold rounded-xl backdrop-blur-md"
-          style={{
-            background: 'rgba(20, 20, 40, 0.75)',
-            boxShadow: `
-              0 8px 16px rgba(0, 0, 0, 0.3),
-              0 0 0 1px rgba(255, 255, 255, 0.15),
-              inset 0 1px 0 rgba(255, 255, 255, 0.2)
-            `,
-            border: '1px solid rgba(255, 255, 255, 0.15)',
-          }}
-        >
+    <div className="relative group flex flex-col items-center">
+      {/* Tooltip Flotante (Solo visible en hover) */}
+      <div className="absolute -top-12 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-20">
+        <div className="px-3 py-1.5 text-xs font-medium text-white/90 bg-black/40 backdrop-blur-xl border border-white/10 rounded-lg shadow-xl">
           {label}
-          
-          {/* Mini brillo en la etiqueta */}
-          <div 
-            className="absolute inset-0 rounded-xl opacity-20"
-            style={{
-              background: `
-                linear-gradient(45deg, 
-                  transparent 0%, 
-                  rgba(255, 255, 255, 0.3) 50%, 
-                  transparent 100%
-                )
-              `,
-            }}
-          />
         </div>
-      </motion.div>
-      
-      {/* Reflejo del icono */}
-      <motion.div
-        className="absolute top-full left-0 right-0 h-16 opacity-20 pointer-events-none"
-        style={{
-          background: gradient,
-          transform: 'scaleY(-0.6) translateY(4px)',
-          filter: 'blur(1px)',
-          borderRadius: '0 0 8px 8px',
-          maskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, transparent 70%)',
-        }}
-        animate={{ 
-          opacity: isHovered ? 0.25 : 0,
-          y: isHovered ? 2 : 0,
-        }}
+      </div>
+
+      <motion.button
+        ref={ref}
+        onClick={onClick}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+        whileHover={{ scale: 1.15, y: -10 }}
+        whileTap={{ scale: 0.9 }}
+        style={{ rotateX, rotateY, transformStyle: 'preserve-3d' }}
+        className="relative w-14 h-14 md:w-16 md:h-16 rounded-[1.2rem] focus:outline-none"
       >
-        <Icon 
-          size={28} 
-          className="text-white mt-4 mx-auto"
-          style={{ 
-            transform: 'scaleY(-1)',
-            filter: 'blur(0.5px)',
-          }}
+        {/* 1. Sombra Ambiental (Glow detrás del icono) */}
+        <div 
+          className="absolute inset-2 rounded-[1rem] opacity-0 group-hover:opacity-60 transition-opacity duration-500 blur-xl"
+          style={{ background: gradient }}
         />
-      </motion.div>
+
+        {/* 2. Estructura Principal de Cristal */}
+        <div className="absolute inset-0 rounded-[1.2rem] ios-liquid-glass overflow-hidden border border-white/20">
+          {/* Gradiente de fondo sutil */}
+          <div 
+            className="absolute inset-0 opacity-20 mix-blend-overlay transition-opacity duration-300 group-hover:opacity-40"
+            style={{ background: gradient }}
+          />
+          
+          {/* Efecto de brillo líquido animado */}
+          <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/10 to-white/0 translate-x-[-100%] group-hover:animate-[shimmer_1.5s_infinite]" />
+        </div>
+
+        {/* 3. El Icono (Flotando en 3D) */}
+        <div 
+          className="relative z-10 w-full h-full flex items-center justify-center text-white drop-shadow-md"
+          style={{ transform: 'translateZ(20px)' }}
+        >
+          <Icon size={28} strokeWidth={2} className="group-hover:text-white transition-colors" />
+        </div>
+
+        {/* 4. Reflejo especular superior (Toque Apple) */}
+        <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/20 to-transparent rounded-t-[1.2rem] pointer-events-none" />
+      </motion.button>
+
+      {/* Indicador de App Abierta (Punto) */}
+      {isOpen && (
+        <motion.div 
+          layoutId="active-dot"
+          className="absolute -bottom-2 w-1.5 h-1.5 bg-white/80 rounded-full shadow-[0_0_8px_rgba(255,255,255,0.8)]"
+        />
+      )}
     </div>
   );
 };
