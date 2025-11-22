@@ -10,16 +10,18 @@ interface DockItem {
   icon: React.ElementType;
   label: string;
   gradient: string;
+  windowId?: string;
+  link?: string;
 }
 
 // --- Configuration ---
 const DOCK_ITEMS: DockItem[] = [
-  { id: "portfolio", icon: Palette, label: "Portfolio", gradient: "linear-gradient(135deg, #60a5fa, #2563eb)" },
-  { id: "youtube", icon: Youtube, label: "YouTube", gradient: "linear-gradient(135deg, #f87171, #dc2626)" },
-  { id: "animations", icon: Play, label: "Animations", gradient: "linear-gradient(135deg, #14b8a6, #0891b2)" },
-  { id: "inspiration", icon: Lightbulb, label: "Inspiration", gradient: "linear-gradient(135deg, #22c55e, #059669)" },
-  { id: "about", icon: User, label: "About", gradient: "linear-gradient(135deg, #06b6d4, #2563eb)" },
-  { id: "contact", icon: Mail, label: "Contact", gradient: "linear-gradient(135deg, #a855f7, #7c3aed)" },
+  { id: "portfolio", icon: Palette, label: "Portfolio", gradient: "linear-gradient(135deg, #60a5fa, #2563eb)", windowId: "portfolio" },
+  { id: "youtube", icon: Youtube, label: "YouTube", gradient: "linear-gradient(135deg, #f87171, #dc2626)", windowId: "youtube" },
+  { id: "animations", icon: Play, label: "Animations", gradient: "linear-gradient(135deg, #14b8a6, #0891b2)", link: "https://youtube.com" }, // Placeholder link
+  { id: "inspiration", icon: Lightbulb, label: "Inspiration", gradient: "linear-gradient(135deg, #22c55e, #059669)", windowId: "about" }, // Using About for now
+  { id: "about", icon: User, label: "About", gradient: "linear-gradient(135deg, #06b6d4, #2563eb)", windowId: "about" },
+  { id: "contact", icon: Mail, label: "Contact", gradient: "linear-gradient(135deg, #a855f7, #7c3aed)", windowId: "contact" },
 ];
 
 // --- Sub-components ---
@@ -50,7 +52,7 @@ const DockIcon = ({
     <motion.div
       ref={ref}
       style={{ width }}
-      className="aspect-square relative flex items-center justify-center group"
+      className="aspect-square relative flex items-center justify-center group dock-icon-jelly"
     >
       {/* Tooltip */}
       <div className="absolute -top-12 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
@@ -65,7 +67,7 @@ const DockIcon = ({
         className="w-full h-full rounded-2xl relative overflow-hidden focus:outline-none"
       >
         {/* Icon Background (Glass) */}
-        <div className="absolute inset-0 liquid-glass rounded-2xl opacity-90 group-hover:opacity-100 transition-opacity" />
+        <div className="absolute inset-0 bg-white/10 backdrop-blur-md rounded-2xl opacity-90 group-hover:opacity-100 transition-opacity border border-white/20" />
 
         {/* Gradient Glow on Hover */}
         <div
@@ -92,7 +94,7 @@ const DockIcon = ({
 export const GlassDock: React.FC = () => {
   const mouseX = useMotionValue(Infinity);
   const { playSound } = useSounds();
-  const { openWindow, windows } = useWindows();
+  const { openWindow, windows, restoreWindow } = useWindows();
 
   const isWindowOpen = (id: string) => windows.some((w) => w.id === id && w.isOpen && !w.isMinimized);
 
@@ -104,7 +106,7 @@ export const GlassDock: React.FC = () => {
     >
       {/* Dock Container */}
       <motion.div
-        className="flex items-end gap-3 px-4 py-3 rounded-[2rem] liquid-glass"
+        className="flex items-end gap-3 px-4 py-3 rounded-[2rem] liquid-glass-animated"
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: "spring", stiffness: 200, damping: 20 }}
@@ -114,10 +116,19 @@ export const GlassDock: React.FC = () => {
             key={item.id}
             item={item}
             mouseX={mouseX}
-            isOpen={isWindowOpen(item.id)}
+            isOpen={item.windowId ? isWindowOpen(item.windowId) : false}
             onClick={() => {
-              playSound("click1"); // Simplified sound for now
-              openWindow(item.id, item.label);
+              playSound("click1");
+              if (item.windowId) {
+                const win = windows.find(w => w.id === item.windowId);
+                if (win?.isMinimized) {
+                  restoreWindow(item.windowId);
+                } else {
+                  openWindow(item.windowId, item.label);
+                }
+              } else if (item.link) {
+                window.open(item.link, '_blank');
+              }
             }}
           />
         ))}

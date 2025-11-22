@@ -6,51 +6,37 @@
   :root {
     --background: 220 20% 97%;
     --foreground: 222 47% 11%;
-    
+
     /* iOS 26.2 Palette */
     --glass-border: 255 255 255;
     --glass-surface: 255 255 255;
-    
-    --radius: 1.5rem; /* More rounded for iOS feel */
+
+    --radius: 1.5rem;
+    /* More rounded for iOS feel */
   }
 
   .dark {
-    --background: 222 47% 4%; /* Deep Space Blue */
+    --background: 222 47% 4%;
+    /* Deep Space Blue */
     --foreground: 210 40% 98%;
   }
 
   * {
     @apply border-white/10;
   }
-  
+
   body {
     @apply bg-background text-foreground font-inter antialiased selection:bg-cyan-500/30;
     overflow: hidden;
-  }
-}
 
-@layer utilities {
-  /* 
-     iOS 26.2 LIQUID GLASS PRO
-     Ultra-realistic glass with noise, specular highlights, and chromatic aberration simulation.
-  */
-  .liquid-glass {
-    @apply relative overflow-hidden;
-    background: rgba(255, 255, 255, 0.03);
-    backdrop-filter: blur(40px) saturate(160%);
-    -webkit-backdrop-filter: blur(40px) saturate(160%);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 
-      0 4px 30px rgba(0, 0, 0, 0.1),
-      inset 0 0 0 1px rgba(255, 255, 255, 0.05),
-      inset 0 0 20px rgba(255, 255, 255, 0.02);
-    transform: translateZ(0); /* GPU */
+    transform: translateZ(0);
+    /* GPU */
   }
 
   .dark .liquid-glass {
     background: rgba(0, 0, 0, 0.2);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: 
+    box-shadow:
       0 20px 50px rgba(0, 0, 0, 0.3),
       inset 0 0 0 1px rgba(255, 255, 255, 0.05);
   }
@@ -60,12 +46,10 @@
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(
-      125deg,
-      rgba(255, 255, 255, 0.3) 0%,
-      rgba(255, 255, 255, 0.05) 40%,
-      transparent 100%
-    );
+    background: linear-gradient(125deg,
+        rgba(255, 255, 255, 0.3) 0%,
+        rgba(255, 255, 255, 0.05) 40%,
+        transparent 100%);
     opacity: 0.6;
     pointer-events: none;
     z-index: 1;
@@ -74,16 +58,17 @@
   /* Mobile Optimization */
   @media (max-width: 768px) {
     .liquid-glass {
-      backdrop-filter: blur(20px) saturate(140%); /* Reduce blur for performance */
+      backdrop-filter: blur(20px) saturate(140%);
+      /* Reduce blur for performance */
       -webkit-backdrop-filter: blur(20px) saturate(140%);
     }
   }
 
   .text-shadow-sm {
-    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   }
-  
+
   .text-shadow-glow {
-    text-shadow: 0 0 20px rgba(255,255,255,0.3);
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
   }
 }

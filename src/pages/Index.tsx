@@ -1,6 +1,5 @@
-// src/pages/Index.tsx
 import React, { Suspense } from 'react';
-import { SkyBackground } from '../components/SkyBackground';
+import { OceanBackground } from '../components/OceanBackground';
 import { MainTitle } from '../components/MainTitle';
 import { GlassDock } from '../components/GlassDock';
 import { WindowManager } from '../components/WindowManager';
@@ -20,7 +19,7 @@ const Index: React.FC = () => {
           <LoadingScreen maxDurationMs={800} />
 
           {/* Background and main UI render immediately to avoid delaying LCP */}
-          <SkyBackground />
+          <OceanBackground />
           <main id="main-content" role="main" className="relative min-h-screen">
             <Suspense fallback={<Fallback />}>
               <MainTitle />
