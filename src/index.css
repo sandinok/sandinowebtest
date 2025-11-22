@@ -7,7 +7,6 @@
     --background: 0 0% 0%;
     --foreground: 0 0% 98%;
   }
-
   body {
     @apply bg-black text-foreground font-sans antialiased overflow-hidden;
     /* Prevenir rebote de scroll en Mac */
@@ -16,7 +15,6 @@
 }
 
 @layer utilities {
-
   /* 
     iOS 16 LIQUID GLASS (Realista)
     Combina backdrop-filter con saturación alta y bordes internos de luz.
@@ -25,37 +23,35 @@
     background: rgba(255, 255, 255, 0.12);
     backdrop-filter: blur(20px) saturate(180%);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
-    box-shadow:
+    box-shadow: 
       inset 0 0 0 1px rgba(255, 255, 255, 0.15),
       0 10px 40px -10px rgba(0, 0, 0, 0.5);
-    transform: translateZ(0);
-    /* Fuerza GPU */
+    transform: translateZ(0); /* Fuerza GPU */
   }
 
   /* Brillo especular superior */
   .glass-shine {
-    background: linear-gradient(180deg,
-        rgba(255, 255, 255, 0.15) 0%,
-        rgba(255, 255, 255, 0) 60%);
+    background: linear-gradient(
+      180deg, 
+      rgba(255, 255, 255, 0.15) 0%, 
+      rgba(255, 255, 255, 0) 60%
+    );
   }
 
   /* Animación de carga optimizada */
   .loading-shimmer {
-    background: linear-gradient(90deg,
-        transparent 0%,
-        rgba(255, 255, 255, 0.4) 50%,
-        transparent 100%);
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.4) 50%,
+      transparent 100%
+    );
     background-size: 200% 100%;
     animation: shimmer 2s infinite linear;
   }
 
   @keyframes shimmer {
-    0% {
-      background-position: -200% 0;
-    }
-
-    100% {
-      background-position: 200% 0;
-    }
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
   }
 }

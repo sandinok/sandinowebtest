@@ -7,7 +7,7 @@ type Props = {
 
 export const LoadingScreen: React.FC<Props> = ({ onDone }) => {
   const [isVisible, setIsVisible] = useState(true);
-
+  
   // Física de resorte para la barra (se siente orgánica)
   const progress = useSpring(0, { stiffness: 40, damping: 15 });
   const width = useTransform(progress, (v) => `${v}%`);
@@ -24,14 +24,14 @@ export const LoadingScreen: React.FC<Props> = ({ onDone }) => {
       await new Promise(r => setTimeout(r, 400));
       progress.set(100);
       await new Promise(r => setTimeout(r, 500));
-
+      
       setIsVisible(false);
       // Esperar a que termine la animación de salida antes de desmontar App
       setTimeout(() => {
         onDone?.();
       }, 600);
     };
-
+    
     sequence();
   }, [progress, onDone]);
 
@@ -63,7 +63,7 @@ export const LoadingScreen: React.FC<Props> = ({ onDone }) => {
                 style={{ width }}
               />
             </div>
-
+            
             <motion.p style={{ opacity }} className="text-xs text-white/40 font-medium tracking-widest uppercase">
               Loading Environment
             </motion.p>
