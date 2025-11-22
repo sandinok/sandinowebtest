@@ -108,7 +108,7 @@ const usePerformanceMonitor = () => {
         lastTime = currentTime;
 
         // Log performance warnings solo en desarrollo
-        if (process.env.NODE_ENV === 'development' && fps < 30) {
+        if (import.meta.env.DEV && fps < 30) {
           console.warn(`Low FPS detected: ${fps}fps`);
         }
       }
