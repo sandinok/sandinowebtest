@@ -6,12 +6,13 @@ import * as THREE from 'three';
 const Ocean = () => {
     const mesh = useRef<THREE.Mesh>(null);
 
-    // Custom shader for a stylized ocean
+    // Shader optimizado para el estilo "Liquid"
     const uniforms = useMemo(
         () => ({
             uTime: { value: 0 },
-            uColorStart: { value: new THREE.Color('#1a2847') },
-            uColorEnd: { value: new THREE.Color('#2a5555') },
+            // Colores más profundos y elegantes para contrastar con el Glass
+            uColorStart: { value: new THREE.Color('#0f172a') }, // Slate 900
+            uColorEnd: { value: new THREE.Color('#1e293b') },   // Slate 800
         }),
         []
     );
@@ -24,8 +25,9 @@ const Ocean = () => {
     });
 
     return (
-        <mesh ref={mesh} rotation={[-Math.PI / 2, 0, 0]} position={[0, -2, 0]}>
-            <planeGeometry args={[100, 100, 128, 128]} />
+        <mesh ref={mesh} rotation={[-Math.PI / 2, 0, 0]} position={[0, -3, 0]}>
+            {/* Optimización: Reducido de 128 a 64 segmentos para mejor rendimiento */}
+            <planeGeometry args={[100, 100, 64, 64]} />
             <shaderMaterial
                 vertexShader={`
           varying vec2 vUv;
@@ -36,10 +38,10 @@ const Ocean = () => {
             vUv = uv;
             vec3 pos = position;
             
-            // Simple wave equation
-            float elevation = sin(pos.x * 2.0 + uTime * 0.5) * 0.2
-                            + sin(pos.y * 1.5 + uTime * 0.3) * 0.2
-                            + sin((pos.x + pos.y) * 1.0 + uTime * 0.8) * 0.1;
+            // Olas más suaves y lentas (Estilo Zen/iOS)
+            float elevation = sin(pos.x * 1.5 + uTime * 0.3) * 0.3
+                            + sin(pos.y * 1.0 + uTime * 0.2) * 0.3
+                            + sin((pos.x + pos.y) * 0.5 + uTime * 0.5) * 0.1;
 
             pos.z += elevation;
             vElevation = elevation;
@@ -53,18 +55,19 @@ const Ocean = () => {
           uniform vec3 uColorEnd;
 
           void main() {
-            float mixStrength = (vElevation + 0.5) * 0.8;
+            float mixStrength = (vElevation + 0.8) * 0.6;
             vec3 color = mix(uColorStart, uColorEnd, mixStrength);
             
-            // Add "foam" or highlight at peaks
-            float highlight = smoothstep(0.4, 0.6, vElevation);
-            color = mix(color, vec3(1.0), highlight * 0.1);
+            // Espuma sutil en las crestas
+            float highlight = smoothstep(0.5, 0.8, vElevation);
+            color = mix(color, vec3(0.6, 0.7, 0.9), highlight * 0.15);
 
             gl_FragColor = vec4(color, 1.0);
           }
         `}
                 uniforms={uniforms}
                 transparent
+                opacity={0.9}
             />
         </mesh>
     );
@@ -72,23 +75,28 @@ const Ocean = () => {
 
 export const OceanBackground: React.FC = () => {
     return (
-        <div className="fixed inset-0 z-[-1] bg-[#050814]">
-            <Canvas camera={{ position: [0, 2, 5], fov: 45 }}>
-                <fog attach="fog" args={['#050814', 0, 20]} />
-                <ambientLight intensity={1.2} />
-                <pointLight position={[10, 10, 10]} intensity={0.8} color="#88ccff" />
+        <div className="fixed inset-0 z-[-1] bg-[#020617] transition-opacity duration-1000 ease-in-out">
+            <Canvas 
+                camera={{ position: [0, 3, 6], fov: 45 }}
+                dpr={[1, 2]} // Optimización para pantallas Retina
+                gl={{ antialias: false }} // Rendimiento extra
+            >
+                <fog attach="fog" args={['#020617', 5, 25]} />
+                <ambientLight intensity={0.5} />
+                
+                {/* Estrellas sutiles */}
+                <Stars radius={100} depth={50} count={3000} factor={4} saturation={0} fade speed={1} />
+                
+                {/* Partículas flotantes (Efecto mágico) */}
+                <Sparkles count={150} scale={12} size={2} speed={0.4} opacity={0.5} color="#94a3b8" />
 
-                {/* Stars & Atmosphere */}
-                <Stars radius={100} depth={50} count={8000} factor={5} saturation={0.3} fade speed={1.5} />
-                <Sparkles count={300} scale={15} size={3} speed={0.6} opacity={0.8} color="#88ddff" />
+                {/* Nubes distantes para profundidad */}
+                <Cloud opacity={0.2} speed={0.2} width={10} depth={1.5} segments={10} position={[0, 5, -15]} color="#1e293b" />
 
-                {/* Clouds for depth */}
-                <Cloud opacity={0.4} speed={0.3} segments={20} position={[0, 5, -10]} color="#2a3555" />
-
-                {/* The Ocean */}
                 <Ocean />
             </Canvas>
         </div>
     );
 };
 
+export default OceanBackground;
