@@ -15,21 +15,13 @@ const App = () => {
       {/* Pantalla de Carga Global */}
       {isLoading && <LoadingScreen onDone={() => setIsLoading(false)} />}
 
-      {/* Global SVG Filters */}
-      <svg style={{ position: 'absolute', width: 0, height: 0 }}>
-        <defs>
-          <filter id="liquid-distortion">
-            <feTurbulence type="fractalNoise" baseFrequency="0.01 0.01" numOctaves="1" result="warp" />
-            <feDisplacementMap xChannelSelector="R" yChannelSelector="G" scale="30" in="SourceGraphic" in2="warp" />
-          </filter>
-        </defs>
-      </svg>
-
-      <Suspense fallback={<div className="bg-black h-screen w-screen" />}>
-        <Routes>
-          <Route path="/" element={<Index />} />
-        </Routes>
-      </Suspense>
+      <div onContextMenu={(e) => e.preventDefault()} className="h-screen w-screen overflow-hidden">
+        <Suspense fallback={<div className="bg-black h-screen w-screen" />}>
+          <Routes>
+            <Route path="/" element={<Index />} />
+          </Routes>
+        </Suspense>
+      </div>
     </QueryClientProvider>
   );
 };

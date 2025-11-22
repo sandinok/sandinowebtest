@@ -58,13 +58,84 @@
     }
   </style>
 
-  <!-- Removed non-essential third-party script for performance and security -->
-  <!-- <script src="https://cdn.gpteng.co/gptengineer.js" async></script> -->
-</head>
+  <!doctype html>
+  <html lang="en">
+
+  <head>
+    <meta charset="UTF-8" />
+    <!-- Favicon respects Vite base in dev and GH Pages -->
+    <link rel="icon" type="image/svg+xml" href="%BASE_URL%vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sandino - Digital Artist & Content Creator</title>
+
+    <!-- SEO -->
+    <meta name="description"
+      content="Sandino — Digital Artist & Content Creator. Immersive visuals, animation, and interactive experiences." />
+    <link rel="canonical" href="https://sandinok.github.io/sandinowebtest/" />
+    <meta name="theme-color" content="#0b1220" />
+
+    <!-- Open Graph / Twitter -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://sandinok.github.io/sandinowebtest/" />
+    <meta property="og:title" content="Sandino - Digital Artist & Content Creator" />
+    <meta property="og:description" content="Immersive visuals, animation, and interactive experiences." />
+    <meta property="og:image" content="https://sandinok.github.io/sandinowebtest/og-image.jpg" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Sandino - Digital Artist & Content Creator" />
+    <meta name="twitter:description" content="Immersive visuals, animation, and interactive experiences." />
+    <meta name="twitter:image" content="https://sandinok.github.io/sandinowebtest/og-image.jpg" />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+
+    <!-- YouTube perf hints -->
+    <link rel="dns-prefetch" href="https://www.youtube.com">
+    <link rel="dns-prefetch" href="https://s.ytimg.com">
+    <link rel="dns-prefetch" href="https://i.ytimg.com">
+    <link rel="preconnect" href="https://www.youtube.com">
+    <link rel="preconnect" href="https://s.ytimg.com">
+    <link rel="preconnect" href="https://i.ytimg.com">
+
+    <!-- Accessibility: Skip link styles -->
+    <style>
+      .skip-link {
+        position: absolute;
+        left: -9999px;
+        top: 0;
+        background: #0b1220;
+        color: #fff;
+        padding: 8px 12px;
+        border-radius: 6px;
+        z-index: 99999;
+      }
+
+      .skip-link:focus {
+        left: 12px;
+        top: 12px;
+        outline: 2px solid #fff;
+      }
+    </style>
+
+    <!-- Removed non-essential third-party script for performance and security -->
+    <!-- <script src="https://cdn.gpteng.co/gptengineer.js" async></script> -->
+  </head>
 
 <body>
   <a href="#main-content" class="skip-link">Skip to content</a>
   <div id="root"></div>
+
+  <!-- Global SVG Filter for Liquid Glass -->
+  <svg style="position: absolute; width: 0; height: 0; pointer-events: none;">
+    <defs>
+      <filter id="liquid">
+        <feTurbulence type="fractalNoise" baseFrequency="0.015" numOctaves="3" result="warp" />
+        <feDisplacementMap xChannelSelector="R" yChannelSelector="G" scale="20" in="SourceGraphic" in2="warp" />
+      </filter>
+    </defs>
+  </svg>
+
   <script type="module" src="/src/main.tsx"></script>
 </body>
 

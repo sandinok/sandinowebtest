@@ -29,14 +29,14 @@ export const Window: React.FC<WindowProps> = ({ id, title, children, zIndex, onF
           exit={{ scale: 0.9, opacity: 0, transition: { duration: 0.15 } }}
           transition={{ type: "spring", stiffness: 350, damping: 25 }}
           style={{ zIndex }}
-          className="fixed top-20 left-4 md:left-20 w-[90vw] md:w-[800px] h-[70vh] md:h-[600px] rounded-2xl liquid-glass flex flex-col overflow-hidden"
+          className="fixed top-20 left-4 md:left-20 w-[90vw] md:w-[800px] h-[70vh] md:h-[600px] rounded-2xl liquid-glass flex flex-col overflow-hidden shadow-2xl"
           onPointerDown={onFocus}
           drag
           dragListener={false}
           dragControls={dragControls}
-          dragMomentum={false}
-          dragElastic={0} // No elasticity for OS-like feel
-          dragConstraints={constraintsRef} // Use constraints if we had a ref, but free float is fine too.
+          dragMomentum={true} // Enable momentum for "throwable" feel
+          dragElastic={0.1} // Slight elasticity
+          dragConstraints={{ left: 0, top: 0, right: window.innerWidth - 100, bottom: window.innerHeight - 100 }} // Basic constraints
         >
           {/* Title Bar */}
           <div
