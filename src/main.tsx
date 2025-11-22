@@ -5,13 +5,13 @@ import App from './App.tsx';
 import './index.css';
 
 const container = document.getElementById("root");
-if (!container) throw new Error('Root element not found'); // Evita errores de inicialización
+if (!container) throw new Error('Root element not found');
 
 const root = createRoot(container);
 
 root.render(
   <React.StrictMode>
-    <HashRouter basename="/"> {/* basename="/" para simplicidad */}
+    <HashRouter>
       <App />
     </HashRouter>
   </React.StrictMode>
