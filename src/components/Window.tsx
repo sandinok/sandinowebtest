@@ -12,7 +12,7 @@ interface WindowProps {
 }
 
 export const Window: React.FC<WindowProps> = ({ id, title, children, zIndex, onFocus }) => {
-  const { closeWindow, minimizeWindow, windows } = useWindows();
+  const { closeWindow, minimizeWindow, maximizeWindow, windows } = useWindows();
   const windowState = windows.find((w) => w.id === id);
   const dragControls = useDragControls();
   const constraintsRef = useRef(null);
@@ -53,6 +53,7 @@ export const Window: React.FC<WindowProps> = ({ id, title, children, zIndex, onF
                 className="w-3 h-3 rounded-full bg-yellow-500 hover:bg-yellow-400 transition-colors shadow-inner"
               />
               <button
+                onClick={(e) => { e.stopPropagation(); maximizeWindow(id); }}
                 className="w-3 h-3 rounded-full bg-green-500 hover:bg-green-400 transition-colors shadow-inner"
               />
             </div>

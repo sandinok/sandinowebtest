@@ -7,7 +7,7 @@ import { PortfolioContent, YouTubeContent, AboutContent, ContactContent, Placeho
 
 // Taskbar component para mostrar ventanas minimizadas
 const Taskbar = memo(() => {
-  const { windows, restoreWindow } = useWindows();
+  const { windows, restoreWindow, closeWindow } = useWindows();
 
   const minimizedWindows = useMemo(() =>
     windows.filter(w => w.isOpen && w.isMinimized),
@@ -181,7 +181,7 @@ export const WindowManager = memo(() => {
       // Escape to close focused window
       if (event.key === 'Escape' && orderedWindows.length > 0) {
         const topWindow = orderedWindows[orderedWindows.length - 1];
-        // TODO: Close top window
+        closeWindow(topWindow.id);
       }
     };
 
