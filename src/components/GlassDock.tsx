@@ -5,6 +5,7 @@ import { useSounds } from "../context/SoundContext";
 import { useWindows } from "../context/WindowContext";
 import { DockIcon } from "./DockIcon";
 
+// IMPORTANTE: export const (No default)
 export const GlassDock: React.FC = () => {
     const { playSound } = useSounds();
     const { openWindow, windows } = useWindows();
@@ -34,6 +35,7 @@ export const GlassDock: React.FC = () => {
                             {...item}
                             isOpen={isOpen}
                             onClick={() => {
+                                // Usamos try-catch por seguridad si el sonido falla
                                 try { playSound("click"); } catch (e) { }
                                 openWindow(item.id, item.label);
                             }}
@@ -44,5 +46,3 @@ export const GlassDock: React.FC = () => {
         </div>
     );
 };
-
-export default GlassDock;
