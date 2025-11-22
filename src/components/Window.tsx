@@ -27,16 +27,19 @@ export const Window: React.FC<WindowProps> = ({ id, title, children, zIndex, onF
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0, transition: { duration: 0.15 } }}
-          transition={{ type: "spring", stiffness: 350, damping: 25 }}
-          style={{ zIndex }}
-          className="fixed top-20 left-4 md:left-20 w-[90vw] md:w-[800px] h-[70vh] md:h-[600px] rounded-2xl liquid-glass flex flex-col overflow-hidden shadow-2xl"
+          transition={{ type: "spring", stiffness: 260, damping: 20 }}
+          style={{
+            zIndex,
+            filter: 'url(#liquid)'
+          }}
+          className="fixed top-20 left-4 md:left-20 w-[90vw] md:w-[800px] h-[70vh] md:h-[600px] rounded-2xl liquid-glass-animated flex flex-col overflow-hidden shadow-2xl"
           onPointerDown={onFocus}
           drag
           dragListener={false}
           dragControls={dragControls}
-          dragMomentum={true} // Enable momentum for "throwable" feel
-          dragElastic={0.1} // Slight elasticity
-          dragConstraints={{ left: 0, top: 0, right: window.innerWidth - 100, bottom: window.innerHeight - 100 }} // Basic constraints
+          dragMomentum={true}
+          dragElastic={0.3}
+          dragConstraints={{ left: 0, top: 0, right: window.innerWidth - 100, bottom: window.innerHeight - 100 }}
         >
           {/* Title Bar */}
           <div

@@ -10,8 +10,8 @@ const Ocean = () => {
     const uniforms = useMemo(
         () => ({
             uTime: { value: 0 },
-            uColorStart: { value: new THREE.Color('#0b1026') },
-            uColorEnd: { value: new THREE.Color('#1a4d40') },
+            uColorStart: { value: new THREE.Color('#1a2847') },
+            uColorEnd: { value: new THREE.Color('#2a5555') },
         }),
         []
     );
@@ -75,14 +75,15 @@ export const OceanBackground: React.FC = () => {
         <div className="fixed inset-0 z-[-1] bg-[#050814]">
             <Canvas camera={{ position: [0, 2, 5], fov: 45 }}>
                 <fog attach="fog" args={['#050814', 0, 20]} />
-                <ambientLight intensity={0.5} />
+                <ambientLight intensity={1.2} />
+                <pointLight position={[10, 10, 10]} intensity={0.8} color="#88ccff" />
 
                 {/* Stars & Atmosphere */}
-                <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
-                <Sparkles count={200} scale={12} size={2} speed={0.4} opacity={0.5} color="#ffffff" />
+                <Stars radius={100} depth={50} count={8000} factor={5} saturation={0.3} fade speed={1.5} />
+                <Sparkles count={300} scale={15} size={3} speed={0.6} opacity={0.8} color="#88ddff" />
 
                 {/* Clouds for depth */}
-                <Cloud opacity={0.3} speed={0.2} segments={20} position={[0, 5, -10]} color="#1a2035" />
+                <Cloud opacity={0.4} speed={0.3} segments={20} position={[0, 5, -10]} color="#2a3555" />
 
                 {/* The Ocean */}
                 <Ocean />
@@ -90,3 +91,4 @@ export const OceanBackground: React.FC = () => {
         </div>
     );
 };
+

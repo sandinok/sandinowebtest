@@ -107,6 +107,9 @@ export const GlassDock: React.FC = () => {
       {/* Dock Container */}
       <motion.div
         className="flex items-end gap-3 px-4 py-3 rounded-[2rem] liquid-glass-animated"
+        style={{
+          filter: 'url(#liquid)'
+        }}
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: "spring", stiffness: 200, damping: 20 }}
