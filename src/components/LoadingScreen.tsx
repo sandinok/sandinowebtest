@@ -23,7 +23,7 @@ export const LoadingScreen: React.FC<Props> = ({ maxDurationMs = 800, onDone }) 
         raf = requestAnimationFrame(step);
       } else {
         setVisible(false);
-        try { window.dispatchEvent(new CustomEvent('app-loading-done')); } catch {}
+        try { window.dispatchEvent(new CustomEvent('app-loading-done')); } catch { }
         onDone?.();
       }
     };
@@ -31,7 +31,7 @@ export const LoadingScreen: React.FC<Props> = ({ maxDurationMs = 800, onDone }) 
 
     const dismiss = () => {
       setVisible(false);
-      try { window.dispatchEvent(new CustomEvent('app-loading-done')); } catch {}
+      try { window.dispatchEvent(new CustomEvent('app-loading-done')); } catch { }
       onDone?.();
     };
     const handlers: Array<keyof WindowEventMap> = ['pointerdown', 'keydown'];
@@ -57,20 +57,18 @@ export const LoadingScreen: React.FC<Props> = ({ maxDurationMs = 800, onDone }) 
               initial={{ y: 10, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.4 }}
-              className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-100 via-cyan-50 to-emerald-100 tracking-[0.2em] mb-6"
-              style={{ backgroundSize: '300% 300%' }}
+              className="text-6xl font-bold text-white tracking-tighter mb-8 drop-shadow-lg font-inter"
             >
               Sandino
             </motion.h1>
-            <div className="h-3 bg-white/10 rounded-full overflow-hidden">
+            <div className="h-2 bg-white/5 rounded-full overflow-hidden backdrop-blur-sm border border-white/10">
               <motion.div
-                className="h-full bg-gradient-to-r from-blue-200 via-cyan-100 to-emerald-200 rounded-full"
+                className="h-full bg-white shadow-[0_0_15px_rgba(255,255,255,0.5)] rounded-full"
                 initial={{ width: 0 }}
                 animate={{ width: `${progress}%` }}
                 transition={{ duration: 0.15 }}
               />
             </div>
-            <div className="mt-3 text-cyan-50/90 text-sm font-medium">{progress}%</div>
           </div>
         </motion.div>
       )}

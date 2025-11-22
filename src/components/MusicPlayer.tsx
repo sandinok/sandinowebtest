@@ -1,283 +1,66 @@
-// src/components/MusicPlayer.tsx
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
-import { Volume2, VolumeX, Play, Pause } from 'lucide-react';
-
-/*
-Lazy-load strategy + Focus Ducking:
-- No third-party scripts are loaded at mount. The YouTube Iframe API is only fetched on first user intent (click).
-- Player is created on demand in an offscreen 1x1 container.
-- Ducking: when the tab/window loses focus or the document gets hidden, volume ramps down to 20%.
-  When focus/visibility returns, it ramps back to the base volume. Smooth fade 400ms.
-- Proper cleanup on unmount.
-*/
-
-declare global {
-  interface Window {
-    YT: any;
-    onYouTubeIframeAPIReady: () => void;
-  }
-}
+import React, { useState, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Play, Pause, SkipForward, SkipBack, Volume2 } from 'lucide-react';
 
 export const MusicPlayer: React.FC = () => {
-  const [apiReady, setApiReady] = useState<boolean>(false);
-  const [playerReady, setPlayerReady] = useState<boolean>(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(true);
-
-  const playerRef = useRef<any>(null);
-  const containerIdRef = useRef<string>('youtube-player-container');
-
-  // Volume management for ducking
-  const baseVolumeRef = useRef<number>(30);   // normal volume when focused (0..100)
-  const duckVolumeRef = useRef<number>(6);    // ~20% of base (auto-updated on ready)
-  const rampRafRef = useRef<number | null>(null);
-
-  const videoId = 'H5v5DJ7Bzq0';
-
-  const loadApi = useCallback(async () => {
-    if (typeof window === 'undefined') return false;
-    if (window.YT && window.YT.Player) {
-      setApiReady(true);
-      return true;
-    }
-    return new Promise<boolean>((resolve) => {
-      const existing = document.querySelector('script[src="https://www.youtube.com/iframe_api"]') as HTMLScriptElement | null;
-      if (existing) {
-        const checkReady = () => {
-          if (window.YT && window.YT.Player) {
-            setApiReady(true);
-            resolve(true);
-          } else {
-            setTimeout(checkReady, 50);
-          }
-        };
-        checkReady();
-        return;
-      }
-      const tag = document.createElement('script');
-      tag.src = 'https://www.youtube.com/iframe_api';
-      tag.async = true;
-      document.body.appendChild(tag);
-      window.onYouTubeIframeAPIReady = () => {
-        setApiReady(true);
-        resolve(true);
-      };
-    });
-  }, []);
-
-  const rampVolume = useCallback((to: number, ms = 400) => {
-    if (!playerRef.current || typeof playerRef.current.getVolume !== 'function') return;
-    try {
-      const start = playerRef.current.getVolume() ?? baseVolumeRef.current;
-      const startTime = performance.now();
-      if (rampRafRef.current) cancelAnimationFrame(rampRafRef.current);
-
-      const step = (now: number) => {
-        const p = Math.min(1, (now - startTime) / ms);
-        const v = Math.round(start + (to - start) * p);
-        try {
-          playerRef.current.setVolume(v);
-        } catch {}
-        if (p < 1) {
-          rampRafRef.current = requestAnimationFrame(step);
-        }
-      };
-      rampRafRef.current = requestAnimationFrame(step);
-    } catch {}
-  }, []);
-
-  const ensurePlayer = useCallback(async () => {
-    if (playerRef.current) return true;
-    const ok = await loadApi();
-    if (!ok || !window.YT) return false;
-
-    // Create offscreen container
-    if (!document.getElementById(containerIdRef.current)) {
-      const div = document.createElement('div');
-      div.id = containerIdRef.current;
-      Object.assign(div.style, {
-        position: 'fixed',
-        top: '-9999px',
-        left: '-9999px',
-        width: '1px',
-        height: '1px',
-        overflow: 'hidden',
-        pointerEvents: 'none',
-      });
-      document.body.appendChild(div);
-    }
-
-    playerRef.current = new window.YT.Player(containerIdRef.current, {
-      height: '1',
-      width: '1',
-      videoId,
-      playerVars: {
-        autoplay: 1, // attempt autoplay (muted) so it starts instantly
-        controls: 0,
-        disablekb: 1,
-        fs: 0,
-        iv_load_policy: 3,
-        modestbranding: 1,
-        playsinline: 1,
-        rel: 0,
-        showinfo: 0,
-        mute: 1, // keep muted to satisfy autoplay policies
-      },
-      events: {
-        onReady: (event: any) => {
-          setPlayerReady(true);
-          try {
-            baseVolumeRef.current = 30;
-            duckVolumeRef.current = Math.max(0, Math.round(baseVolumeRef.current * 0.2));
-            event.target.setVolume(baseVolumeRef.current);
-            event.target.playVideo(); // start immediately (muted autoplay)
-            setIsPlaying(true);
-          } catch {}
-        },
-        onStateChange: (event: any) => {
-          // 1 = playing, 2 = paused, 0 = ended
-          if (event.data === 1) setIsPlaying(true);
-          else if (event.data === 2) setIsPlaying(false);
-          else if (event.data === 0) {
-            // Do not loop; keep stopped
-            setIsPlaying(false);
-          }
-        },
-      },
-    });
-    return true;
-  }, [loadApi, videoId]);
-
-  const togglePlay = useCallback(async () => {
-    const ok = await ensurePlayer();
-    if (!ok || !playerRef.current) return;
-
-    if (isPlaying) {
-      try { playerRef.current.pauseVideo(); } catch {}
-    } else {
-      try { playerRef.current.playVideo(); } catch {}
-    }
-  }, [ensurePlayer, isPlaying]);
-
-  // Ensure API + player are created as soon as possible (for instant autoplay)
-  useEffect(() => {
-    (async () => {
-      try {
-        await loadApi();
-        await ensurePlayer();
-      } catch {}
-    })();
-  }, [loadApi, ensurePlayer]);
-
-  const toggleMute = useCallback(async () => {
-    const ok = await ensurePlayer();
-    if (!ok || !playerRef.current || !playerReady) return;
-
-    if (isMuted) {
-      try { playerRef.current.unMute(); } catch {}
-      setIsMuted(false);
-    } else {
-      try { playerRef.current.mute(); } catch {}
-      setIsMuted(true);
-    }
-  }, [ensurePlayer, isMuted, playerReady]);
-
-  // Fade-in from muted to base volume when the LoadingScreen finishes
-  useEffect(() => {
-    const onAppLoaded = () => {
-      if (!playerRef.current || !playerReady) return;
-      try {
-        // Unmute and ramp up smoothly to base volume
-        playerRef.current.unMute?.();
-        setIsMuted(false);
-        rampVolume(baseVolumeRef.current, 700);
-      } catch {}
-    };
-    window.addEventListener('app-loading-done', onAppLoaded as any);
-    return () => window.removeEventListener('app-loading-done', onAppLoaded as any);
-  }, [playerReady, rampVolume]);
-
-  // Focus/visibility ducking
-  useEffect(() => {
-    const onVisibility = () => {
-      if (!playerRef.current || !playerReady) return;
-      if (document.visibilityState === 'hidden') {
-        rampVolume(duckVolumeRef.current, 400);
-      } else {
-        rampVolume(baseVolumeRef.current, 400);
-      }
-    };
-    const onBlur = () => {
-      if (!playerRef.current || !playerReady) return;
-      rampVolume(duckVolumeRef.current, 400);
-    };
-    const onFocus = () => {
-      if (!playerRef.current || !playerReady) return;
-      rampVolume(baseVolumeRef.current, 400);
-    };
-
-    document.addEventListener('visibilitychange', onVisibility);
-    window.addEventListener('blur', onBlur);
-    window.addEventListener('focus', onFocus);
-
-    return () => {
-      document.removeEventListener('visibilitychange', onVisibility);
-      window.removeEventListener('blur', onBlur);
-      window.removeEventListener('focus', onFocus);
-      if (rampRafRef.current) cancelAnimationFrame(rampRafRef.current);
-    };
-  }, [playerReady, rampVolume]);
-
-  useEffect(() => {
-    return () => {
-      try {
-        if (playerRef.current) {
-          playerRef.current.destroy();
-          playerRef.current = null;
-        }
-      } catch {}
-    };
-  }, []);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.8 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ delay: 1.2, duration: 0.4 }}
-      className="fixed top-4 right-4 z-50"
+      initial={{ opacity: 0, x: 100 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: 1, type: "spring" }}
+      className="fixed top-6 right-6 z-40"
     >
       <motion.div
-        className="flex items-center gap-2 p-2 rounded-full bg-black/20 backdrop-blur-sm cursor-pointer"
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.9 }}
-        onClick={togglePlay}
-        aria-label={isPlaying ? 'Pausar música' : 'Reproducir música'}
+        animate={{ width: isExpanded ? 320 : 60, height: isExpanded ? 140 : 60 }}
+        className="liquid-glass rounded-[2rem] overflow-hidden relative cursor-pointer"
+        onClick={() => !isExpanded && setIsExpanded(true)}
       >
-        <div className="relative">
-          {isPlaying ? <Pause size={20} className="text-white" /> : <Play size={20} className="text-white ml-0.5" />}
-          {isPlaying && (
-            <motion.div
-              className="absolute inset-0 rounded-full border border-white/40"
-              animate={{ scale: [1, 1.3, 1], opacity: [0.7, 0, 0.7] }}
-              transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-            />
-          )}
+        {/* Compact View (Icon only) */}
+        <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-300 ${isExpanded ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+          <div className={`w-8 h-8 rounded-full border-2 border-white/30 flex items-center justify-center ${isPlaying ? 'animate-spin-slow' : ''}`}>
+            <span className="text-xs font-bold text-white">♫</span>
+          </div>
         </div>
 
-        <motion.button
-          onClick={(e) => {
-            e.stopPropagation();
-            toggleMute();
-          }}
-          className="p-1 rounded-full hover:bg-white/10"
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          aria-label={isMuted ? 'Activar sonido' : 'Silenciar sonido'}
-        >
-          {isMuted ? <VolumeX size={16} className="text-white" /> : <Volume2 size={16} className="text-white" />}
-        </motion.button>
+        {/* Expanded View */}
+        <div className={`p-5 flex flex-col justify-between h-full transition-opacity duration-300 ${isExpanded ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500 shadow-lg" />
+              <div>
+                <h3 className="text-white font-medium text-sm leading-tight">Cosmic Vibes</h3>
+                <p className="text-white/50 text-xs">Sandino's Mix</p>
+              </div>
+            </div>
+            <button
+              onClick={(e) => { e.stopPropagation(); setIsExpanded(false); }}
+              className="text-white/40 hover:text-white transition-colors"
+            >
+              <MinusIcon />
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between mt-2">
+            <button className="text-white/70 hover:text-white"><SkipBack size={20} /></button>
+            <button
+              onClick={(e) => { e.stopPropagation(); setIsPlaying(!isPlaying); }}
+              className="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 transition-transform"
+            >
+              {isPlaying ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" className="ml-1" />}
+            </button>
+            <button className="text-white/70 hover:text-white"><SkipForward size={20} /></button>
+          </div>
+        </div>
       </motion.div>
     </motion.div>
   );
 };
+
+const MinusIcon = () => (
+  <svg width="12" height="2" viewBox="0 0 12 2" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M1 1H11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+  </svg>
+);

@@ -1,109 +1,62 @@
-// src/components/MainTitle.tsx
-import React, { useMemo } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
-type MainTitleProps = {
-  title?: string;
-  subtitle?: string;
-  className?: string;
-};
+export const MainTitle: React.FC = () => {
+  const [time, setTime] = useState(new Date());
+  const [isUnlocked, setIsUnlocked] = useState(false);
 
-export const MainTitle: React.FC<MainTitleProps> = ({
-  title = 'Sandino',
-  subtitle = 'Digital Artist & Content Creator',
-  className = '',
-}) => {
-  // Sparkles precomputed (few, light, very smooth)
-  const sparkles = useMemo(
-    () =>
-      Array.from({ length: 6 }).map((_, i) => ({
-        id: i,
-        x: Math.random() * 100,
-        dx: (Math.random() - 0.5) * 6,
-        dur: 3.4 + Math.random() * 1.0,
-        delay: 1.0 + Math.random() * 1.5,
-        hue: 195 + Math.floor(Math.random() * 20), // soft cyan-blue
-        a: 0.18 + Math.random() * 0.16,
-      })),
-    []
-  );
+  useEffect(() => {
+    const timer = setInterval(() => setTime(new Date()), 1000);
 
-  // Fixed ultra‑bright gradient: pure white for maximum legibility (no tint)
-  const gradient = 'linear-gradient(90deg, #FFFFFF 0%, #FFFFFF 100%)';
+    // Auto-unlock on scroll or click
+    const handleInteraction = () => setIsUnlocked(true);
+    window.addEventListener('click', handleInteraction);
+    window.addEventListener('scroll', handleInteraction);
+
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('click', handleInteraction);
+      window.removeEventListener('scroll', handleInteraction);
+    };
+  }, []);
+
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: false });
+  };
+
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  };
 
   return (
-    <div
-      className={[
-        'absolute left-1/2 -translate-x-1/2 text-center z-30 px-4',
-        'top-16 md:top-20 lg:top-24',
-        'will-change-transform',
-        className,
-      ].join(' ')}
-    >
-      <motion.div
-        initial={{ opacity: 0, y: -14 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: 'easeOut', delay: 0.2 }}
-        className="relative inline-block"
-      >
-        {/* Ambient glow (brighter, tighter, still very light) */}
+    <AnimatePresence>
+      {!isUnlocked && (
         <motion.div
-          aria-hidden
-          className="absolute -inset-8 rounded-full pointer-events-none"
-          style={{
-            background:
-              'radial-gradient(60% 50% at 50% 25%, rgba(255,255,255,0.35) 0%, rgba(224, 244, 255, 0.28) 36%, rgba(255, 238, 248, 0.22) 62%, transparent 100%)',
-            filter: 'blur(18px)',
-          }}
-          animate={{ opacity: [0.5, 0.62, 0.5], scale: [1, 1.01, 1] }}
-          transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
-        />
-
-        {/* Title (no vertical bob, only BG scroll — eliminates jitter) */}
-        <h1
-          className="text-[48px] sm:text-[64px] md:text-[88px] lg:text-[104px] font-bold mb-3 md:mb-4 select-none leading-none relative"
-          style={{
-            fontFamily: "'Dancing Script', cursive",
-            WebkitTextStroke: '2px rgba(255,255,255,0.95)',
-            textShadow: '0 2px 8px rgba(0,0,0,0.28)'
-          }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -50, filter: 'blur(10px)' }}
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          className="fixed inset-0 flex flex-col items-center justify-start pt-[15vh] z-50 pointer-events-none"
         >
-          <span
-            className="inline-block"
-            style={{
-              color: '#FFFFFF'
-            }}
+          <motion.div className="flex flex-col items-center text-center space-y-2">
+            <h2 className="text-xl md:text-2xl font-medium text-white/90 tracking-wide drop-shadow-md">
+              {formatDate(time)}
+            </h2>
+            <h1 className="text-8xl md:text-9xl font-bold text-white tracking-tighter drop-shadow-xl font-inter">
+              {formatTime(time)}
+            </h1>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1, duration: 1 }}
+            className="absolute bottom-10 text-white/50 text-sm animate-pulse"
           >
-            {title}
-          </span>
-        </h1>
-
-        {/* Remove extra sheen scroller to avoid any shimmer jitter */}
-
-        {/* Sparkles removidos para 0 coste de animación */}
-      </motion.div>
-
-      {/* Divider removed per request */}
-
-      {/* Subtitle (tiny lift, quick settle) */}
-      <motion.p
-        initial={{ opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.5, ease: 'easeOut' }}
-        className="text-sm sm:text-base md:text-lg text-white/95 font-light tracking-wide px-4"
-        style={{ textShadow: '0 2px 6px rgba(0,0,0,0.35)' }}
-      >
-        {subtitle}
-      </motion.p>
-
-      {/* Reduced motion support */}
-      <style>{`
-        @media (prefers-reduced-motion: reduce) {
-          * { animation: none !important; transition: none !important; }
-        }
-      `}</style>
-    </div>
+            Tap or Scroll to Unlock
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 };
-
-export default MainTitle;

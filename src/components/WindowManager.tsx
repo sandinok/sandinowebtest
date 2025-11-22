@@ -3,12 +3,13 @@ import React, { memo, useMemo, useCallback, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useWindows } from '../context/WindowContext';
 import { Window } from './Window';
+import { PortfolioContent, YouTubeContent, AboutContent, ContactContent, PlaceholderContent } from './AppContents';
 
 // Taskbar component para mostrar ventanas minimizadas
 const Taskbar = memo(() => {
   const { windows, restoreWindow } = useWindows();
-  
-  const minimizedWindows = useMemo(() => 
+
+  const minimizedWindows = useMemo(() =>
     windows.filter(w => w.isOpen && w.isMinimized),
     [windows]
   );
@@ -71,7 +72,7 @@ const Taskbar = memo(() => {
               <span className="text-white text-sm font-medium">
                 {window.title}
               </span>
-              
+
               {/* Hover glow effect */}
               <motion.div
                 className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100"
@@ -124,7 +125,7 @@ const usePerformanceMonitor = () => {
 const useWindowOrdering = (windows: any[]) => {
   return useMemo(() => {
     const visibleWindows = windows.filter(w => w.isOpen && !w.isMinimized);
-    
+
     // Sort by zIndex pero mantenemos referencia estable para evitar re-renders
     return [...visibleWindows].sort((a, b) => a.zIndex - b.zIndex);
   }, [windows]);
@@ -133,13 +134,13 @@ const useWindowOrdering = (windows: any[]) => {
 // Main WindowManager component
 export const WindowManager = memo(() => {
   const { windows } = useWindows();
-  
+
   // Performance monitoring en desarrollo
   usePerformanceMonitor();
-  
+
   // Optimized window ordering
   const orderedWindows = useWindowOrdering(windows);
-  
+
   // Memoized visible windows count para estadísticas
   const windowStats = useMemo(() => ({
     total: windows.length,
@@ -198,7 +199,7 @@ export const WindowManager = memo(() => {
   // Container variants para animaciones coordinadas
   const containerVariants = {
     initial: { opacity: 0 },
-    animate: { 
+    animate: {
       opacity: 1,
       transition: {
         staggerChildren: 0.08,
@@ -233,10 +234,19 @@ export const WindowManager = memo(() => {
               layout={layoutConfig.animationQuality === 'high'}
               layoutId={`window-${window.id}`}
             >
-              <Window 
-                window={window} 
-                layoutConfig={layoutConfig}
-              />
+              <Window
+                id={window.id}
+                title={window.title}
+                zIndex={window.zIndex}
+                onFocus={() => { /* bringToFront(window.id) - handled by context usually but simple click works too */ }}
+              >
+                {window.id === 'portfolio' && <PortfolioContent />}
+                {window.id === 'youtube' && <YouTubeContent />}
+                {window.id === 'about' && <AboutContent />}
+                {window.id === 'contact' && <ContactContent />}
+                {/* Fallback for others */}
+                {['animations', 'inspiration'].includes(window.id) && <PlaceholderContent title={window.title} />}
+              </Window>
             </motion.div>
           ))}
         </AnimatePresence>
