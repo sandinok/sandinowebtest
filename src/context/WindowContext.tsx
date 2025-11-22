@@ -18,7 +18,7 @@ interface WindowContextType {
 
 const WindowContext = createContext<WindowContextType | undefined>(undefined);
 
-// EXPORTACIÓN 1
+// EXPORT 1: El Proveedor
 export const WindowProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [windows, setWindows] = useState<WindowState[]>([]);
 
@@ -65,7 +65,7 @@ export const WindowProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   );
 };
 
-// EXPORTACIÓN 2
+// EXPORT 2: El Hook
 export const useWindows = () => {
   const context = useContext(WindowContext);
   if (!context) throw new Error("useWindows must be used within a WindowProvider");
