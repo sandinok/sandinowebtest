@@ -1,10 +1,8 @@
 import React from 'react';
-// Asegúrate de que esta ruta sea exacta. Si Context está con mayúscula en tu carpeta, cámbialo aquí.
 import { useWindows } from '../context/WindowContext';
 import { Window } from './Window';
 import { AnimatePresence } from 'framer-motion';
 
-// IMPORTANTE: export const
 export const WindowManager: React.FC = () => {
     const { windows } = useWindows();
 
@@ -20,3 +18,5 @@ export const WindowManager: React.FC = () => {
         </div>
     );
 };
+
+export default WindowManager;
