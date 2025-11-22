@@ -4,82 +4,58 @@
 
 @layer base {
   :root {
-    --background: 220 20% 97%;
-    --foreground: 222 47% 11%;
-  }
-
-  .dark {
-    --background: 222 47% 4%;
-    --foreground: 210 40% 98%;
-  }
-
-  * {
-    @apply border-white/10;
+    --background: 0 0% 0%;
+    --foreground: 0 0% 98%;
   }
 
   body {
-    @apply bg-background text-foreground font-inter antialiased selection:bg-cyan-500/30;
-    overflow: hidden;
-    user-select: none;
-    -webkit-user-select: none;
-    transform: translateZ(0);
+    @apply bg-black text-foreground font-sans antialiased overflow-hidden;
+    /* Prevenir rebote de scroll en Mac */
+    overscroll-behavior: none;
   }
+}
 
-  /* Clean iOS-Style Glassmorphism */
-  .liquid-glass-animated {
-    background: rgba(255, 255, 255, 0.08);
+@layer utilities {
+
+  /* 
+    iOS 16 LIQUID GLASS (Realista)
+    Combina backdrop-filter con saturación alta y bordes internos de luz.
+  */
+  .ios-liquid-glass {
+    background: rgba(255, 255, 255, 0.12);
     backdrop-filter: blur(20px) saturate(180%);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.18);
     box-shadow:
-      0 8px 32px rgba(0, 0, 0, 0.37),
-      inset 0 1px 0 rgba(255, 255, 255, 0.1);
-    position: relative;
-    overflow: hidden;
+      inset 0 0 0 1px rgba(255, 255, 255, 0.15),
+      0 10px 40px -10px rgba(0, 0, 0, 0.5);
+    transform: translateZ(0);
+    /* Fuerza GPU */
   }
 
-  .liquid-glass-animated::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 200%;
-    height: 100%;
+  /* Brillo especular superior */
+  .glass-shine {
+    background: linear-gradient(180deg,
+        rgba(255, 255, 255, 0.15) 0%,
+        rgba(255, 255, 255, 0) 60%);
+  }
+
+  /* Animación de carga optimizada */
+  .loading-shimmer {
     background: linear-gradient(90deg,
-        transparent,
-        rgba(255, 255, 255, 0.06),
-        transparent);
-    animation: shine 8s infinite linear;
-    pointer-events: none;
+        transparent 0%,
+        rgba(255, 255, 255, 0.4) 50%,
+        transparent 100%);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite linear;
   }
 
-  @keyframes shine {
+  @keyframes shimmer {
     0% {
-      transform: translateX(0);
+      background-position: -200% 0;
     }
 
     100% {
-      transform: translateX(100%);
+      background-position: 200% 0;
     }
-  }
-
-  /* Jelly Physics for Dock Icons */
-  .dock-icon-jelly {
-    transition: transform 0.4s cubic-bezier(0.25, 1.5, 0.5, 1);
-  }
-
-  .dock-icon-jelly:hover {
-    transform: scale(1.1) translateY(-5px);
-  }
-
-  .dock-icon-jelly:active {
-    transform: scale(0.95);
-  }
-
-  /* Allow selection in specific areas */
-  .selectable {
-    user-select: text;
-    -webkit-user-select: text;
-    cursor: text;
   }
 }

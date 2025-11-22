@@ -12,11 +12,15 @@ const App = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Pantalla de Carga Global */}
-      {isLoading && <LoadingScreen onDone={() => setIsLoading(false)} />}
+      {/* Pantalla de Carga (Se superpone a todo) */}
+      <LoadingScreen onDone={() => setIsLoading(false)} />
 
-      <div onContextMenu={(e) => e.preventDefault()} className="h-screen w-screen overflow-hidden">
-        <Suspense fallback={<div className="bg-black h-screen w-screen" />}>
+      {/* Contenido Principal */}
+      <div
+        onContextMenu={(e) => e.preventDefault()}
+        className={`h-screen w-screen overflow-hidden transition-opacity duration-700 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
+      >
+        <Suspense fallback={<div className="bg-black h-full w-full" />}>
           <Routes>
             <Route path="/" element={<Index />} />
           </Routes>
