@@ -24,49 +24,50 @@ export const Window: React.FC<WindowProps> = ({ id, title, children, zIndex, onF
       {!windowState.isMinimized && (
         <motion.div
           key={id}
-          initial={{ scale: 0.8, opacity: 0, y: 50 }}
-          animate={{ scale: 1, opacity: 1, y: 0 }}
-          exit={{ scale: 0.8, opacity: 0, y: 50, filter: "blur(10px)" }}
-          transition={{ type: "spring", stiffness: 300, damping: 25 }}
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0, transition: { duration: 0.15 } }}
+          transition={{ type: "spring", stiffness: 350, damping: 25 }}
           style={{ zIndex }}
-          className="fixed top-20 left-4 md:left-20 w-[90vw] md:w-[800px] h-[70vh] md:h-[600px] rounded-3xl liquid-glass flex flex-col shadow-2xl"
+          className="fixed top-20 left-4 md:left-20 w-[90vw] md:w-[800px] h-[70vh] md:h-[600px] rounded-2xl liquid-glass flex flex-col overflow-hidden"
           onPointerDown={onFocus}
           drag
           dragListener={false}
           dragControls={dragControls}
           dragMomentum={false}
-          dragElastic={0.1}
-          dragConstraints={{ left: 0, top: 0, right: 0, bottom: 0 }} // Constraints handled by parent usually, but here we just want free float with limits if needed. For now, free float.
+          dragElastic={0} // No elasticity for OS-like feel
+          dragConstraints={constraintsRef} // Use constraints if we had a ref, but free float is fine too.
         >
           {/* Title Bar */}
           <div
-            className="h-12 flex items-center justify-between px-4 border-b border-white/10 cursor-grab active:cursor-grabbing"
+            className="h-10 flex items-center justify-between px-4 bg-white/5 border-b border-white/10 cursor-default select-none"
             onPointerDown={(e) => dragControls.start(e)}
+            onDoubleClick={() => maximizeWindow(id)} // Double click to maximize
           >
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 group">
               <button
                 onClick={(e) => { e.stopPropagation(); closeWindow(id); }}
-                className="w-3 h-3 rounded-full bg-red-500 hover:bg-red-400 transition-colors shadow-inner"
+                className="w-3 h-3 rounded-full bg-[#FF5F56] border border-[#E0443E] hover:brightness-110 active:brightness-90 transition-all shadow-sm"
               />
               <button
                 onClick={(e) => { e.stopPropagation(); minimizeWindow(id); }}
-                className="w-3 h-3 rounded-full bg-yellow-500 hover:bg-yellow-400 transition-colors shadow-inner"
+                className="w-3 h-3 rounded-full bg-[#FFBD2E] border border-[#DEA123] hover:brightness-110 active:brightness-90 transition-all shadow-sm"
               />
               <button
                 onClick={(e) => { e.stopPropagation(); maximizeWindow(id); }}
-                className="w-3 h-3 rounded-full bg-green-500 hover:bg-green-400 transition-colors shadow-inner"
+                className="w-3 h-3 rounded-full bg-[#27C93F] border border-[#1AAB29] hover:brightness-110 active:brightness-90 transition-all shadow-sm"
               />
             </div>
 
-            <span className="text-sm font-medium text-white/80 font-inter tracking-wide select-none">
+            <span className="text-xs font-medium text-white/70 font-inter tracking-wide pointer-events-none">
               {title}
             </span>
 
-            <div className="w-10" /> {/* Spacer for centering */}
+            <div className="w-14" /> {/* Spacer */}
           </div>
 
           {/* Content */}
-          <div className="flex-1 overflow-auto p-6 text-white/90 select-text">
+          <div className="flex-1 overflow-auto p-6 text-white/90 selectable cursor-text bg-black/20">
             {children}
           </div>
         </motion.div>
