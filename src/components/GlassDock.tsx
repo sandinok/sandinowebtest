@@ -5,6 +5,7 @@ import { useSounds } from "../context/SoundContext";
 import { useWindows } from "../context/WindowContext";
 import { DockIcon } from "./DockIcon";
 
+// NOTA: Usamos 'export const' para que coincida con el import { GlassDock }
 export const GlassDock: React.FC = () => {
   const { playSound } = useSounds();
   const { openWindow, windows } = useWindows();
@@ -23,30 +24,18 @@ export const GlassDock: React.FC = () => {
       <motion.div
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ 
-          type: "spring", 
-          damping: 25, 
-          stiffness: 120, 
-          delay: 0.5 // Pequeño delay para que no choque con la carga
-        }}
-        className="
-          pointer-events-auto
-          flex items-end gap-3 px-4 py-3.5 pb-4
-          rounded-[2.5rem]
-          ios-liquid-glass
-          border border-white/10
-        "
+        transition={{ type: "spring", damping: 25, stiffness: 120, delay: 0.5 }}
+        className="pointer-events-auto flex items-end gap-3 px-4 py-3.5 pb-4 rounded-[2.5rem] ios-liquid-glass border border-white/10"
       >
         {dockItems.map((item) => {
           const isOpen = windows.some(w => w.id === item.id && !w.isMinimized);
-          
           return (
             <DockIcon
               key={item.id}
               {...item}
               isOpen={isOpen}
               onClick={() => {
-                playSound("click1"); 
+                playSound("click");
                 openWindow(item.id, item.label);
               }}
             />
@@ -56,5 +45,3 @@ export const GlassDock: React.FC = () => {
     </div>
   );
 };
-
-export default GlassDock;

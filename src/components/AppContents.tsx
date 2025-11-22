@@ -1,82 +1,115 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { Github, Linkedin, Mail, ExternalLink, Code2, Palette, Monitor } from 'lucide-react';
 
-export const PortfolioContent = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
-        {[1, 2, 3, 4].map((i) => (
-            <motion.div
-                key={i}
-                whileHover={{ scale: 1.02 }}
-                className="aspect-video bg-white/5 rounded-xl border border-white/10 flex items-center justify-center overflow-hidden relative group cursor-pointer"
-            >
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-                <span className="text-white/50 group-hover:text-white transition-colors font-medium">Project {i}</span>
-            </motion.div>
-        ))}
+// Sub-componente para Portfolio
+const PortfolioContent = () => (
+  <div className="space-y-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {[1, 2, 3, 4].map((i) => (
+        <div key={i} className="group relative aspect-video rounded-lg overflow-hidden bg-black/20 border border-white/10 cursor-pointer">
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-60" />
+          <div className="absolute bottom-0 left-0 p-4">
+            <h3 className="text-lg font-bold text-white">Project Alpha {i}</h3>
+            <p className="text-sm text-white/60">React • TypeScript • Tailwind</p>
+          </div>
+          <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        </div>
+      ))}
     </div>
+  </div>
 );
 
-export const YouTubeContent = () => (
-    <div className="flex flex-col items-center justify-center h-full space-y-6 p-8 text-center">
-        <div className="w-20 h-20 bg-red-600 rounded-full flex items-center justify-center shadow-lg shadow-red-900/20">
-            <svg className="w-8 h-8 text-white fill-current" viewBox="0 0 24 24">
-                <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z" />
-            </svg>
-        </div>
-        <div className="space-y-2">
-            <h2 className="text-2xl font-bold text-white">Sandino</h2>
-            <p className="text-white/60 max-w-md mx-auto">
-                Creating digital art, tutorials, and visual experiences. Subscribe to stay updated.
-            </p>
-        </div>
-        <button className="px-6 py-2 bg-white text-black rounded-full font-medium hover:bg-gray-200 transition-colors">
-            Visit Channel
+// Sub-componente para About Me
+const AboutContent = () => (
+  <div className="flex flex-col md:flex-row gap-8 items-start">
+    <div className="w-32 h-32 rounded-full bg-gradient-to-br from-blue-400 to-purple-600 shrink-0 shadow-2xl ring-4 ring-white/10" />
+    <div className="space-y-4">
+      <h2 className="text-3xl font-bold">Hi, I'm Sandino</h2>
+      <p className="text-lg text-white/80 leading-relaxed">
+        Creative Developer & UI/UX Enthusiast. I build digital experiences that blend 
+        performance with aesthetic perfection. Specialized in the React ecosystem and 3D web technologies.
+      </p>
+      <div className="flex gap-3 pt-2">
+        <button className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors border border-white/10">
+          <Github size={18} /> GitHub
         </button>
+        <button className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#0077b5]/80 hover:bg-[#0077b5] transition-colors border border-white/10">
+          <Linkedin size={18} /> LinkedIn
+        </button>
+      </div>
     </div>
+  </div>
 );
 
-export const AboutContent = () => (
-    <div className="flex flex-col items-center text-center space-y-6 p-8">
-        <div className="w-32 h-32 rounded-full bg-gradient-to-tr from-cyan-400 to-blue-600 shadow-xl mb-4" />
-        <div className="space-y-4">
-            <h2 className="text-3xl font-bold text-white">Sandino</h2>
-            <p className="text-white/70 max-w-lg mx-auto leading-relaxed">
-                Digital Artist & Content Creator passionate about creating immersive visual experiences and pushing the boundaries of web design.
-            </p>
+// Sub-componente para Skills/Animations
+const SkillsContent = () => (
+  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+    {[
+      { icon: Code2, label: "React / Next.js", color: "text-blue-400" },
+      { icon: Palette, label: "Tailwind CSS", color: "text-cyan-400" },
+      { icon: Monitor, label: "Three.js / R3F", color: "text-orange-400" },
+    ].map((skill, i) => (
+      <div key={i} className="p-4 rounded-xl bg-white/5 border border-white/10 flex flex-col items-center gap-3 hover:bg-white/10 transition-colors">
+        <skill.icon size={32} className={skill.color} />
+        <span className="font-medium">{skill.label}</span>
+      </div>
+    ))}
+  </div>
+);
+
+interface AppContentsProps {
+  id: string;
+}
+
+export const AppContents: React.FC<AppContentsProps> = ({ id }) => {
+  // Animación suave al cambiar de contenido
+  const contentVariants = {
+    hidden: { opacity: 0, y: 10 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.4 } }
+  };
+
+  let content;
+
+  switch (id) {
+    case 'portfolio':
+      content = <PortfolioContent />;
+      break;
+    case 'about':
+      content = <AboutContent />;
+      break;
+    case 'animations':
+    case 'inspiration':
+      content = <SkillsContent />;
+      break;
+    case 'contact':
+      content = (
+        <div className="flex flex-col items-center justify-center h-full space-y-6">
+          <Mail size={64} className="text-white/20" />
+          <h2 className="text-2xl font-bold">Let's work together</h2>
+          <a href="mailto:contact@sandino.dev" className="text-blue-400 hover:underline text-lg">
+            contact@sandino.dev
+          </a>
         </div>
-        <div className="flex gap-4 pt-4">
-            <button className="px-6 py-2 rounded-full bg-white text-black font-medium hover:bg-white/90 transition-colors">
-                Resume
-            </button>
-            <button className="px-6 py-2 rounded-full bg-white/10 text-white border border-white/20 hover:bg-white/20 transition-colors">
-                Portfolio
-            </button>
+      );
+      break;
+    default:
+      content = (
+        <div className="flex flex-col items-center justify-center h-full text-white/40">
+          <Code2 size={48} className="mb-4 opacity-50" />
+          <p>Content for {id} is under construction.</p>
         </div>
-    </div>
-);
+      );
+  }
 
-export const ContactContent = () => (
-    <div className="flex flex-col items-center justify-center h-full p-8 w-full max-w-md mx-auto">
-        <h2 className="text-2xl font-bold text-white mb-6">Get in Touch</h2>
-        <form className="space-y-4 w-full" onSubmit={(e) => e.preventDefault()}>
-            <div className="space-y-2">
-                <label className="text-sm text-white/70 ml-1">Email</label>
-                <input type="email" className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 focus:border-white/30 focus:outline-none text-white placeholder:text-white/20 transition-colors" placeholder="hello@example.com" />
-            </div>
-            <div className="space-y-2">
-                <label className="text-sm text-white/70 ml-1">Message</label>
-                <textarea className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 focus:border-white/30 focus:outline-none text-white placeholder:text-white/20 h-32 resize-none transition-colors" placeholder="Let's create something amazing..." />
-            </div>
-            <button className="w-full py-3 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-medium shadow-lg hover:shadow-cyan-500/25 transition-shadow hover:scale-[1.02] active:scale-[0.98]">
-                Send Message
-            </button>
-        </form>
-    </div>
-);
-
-export const PlaceholderContent = ({ title }: { title: string }) => (
-    <div className="flex flex-col items-center justify-center h-full text-white/30">
-        <span className="text-4xl mb-4">✨</span>
-        <p>Content for {title} coming soon</p>
-    </div>
-);
+  return (
+    <motion.div 
+      initial="hidden" 
+      animate="visible" 
+      variants={contentVariants}
+      className="h-full"
+    >
+      {content}
+    </motion.div>
+  );
+};

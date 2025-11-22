@@ -1,30 +1,28 @@
 import React from 'react';
-import { motion } from "framer-motion";
+import { motion } from 'framer-motion';
+import { useWindows } from '../context/WindowContext';
 
 export const MainTitle: React.FC = () => {
+  const { windows } = useWindows();
+  const hasOpenWindows = windows.some(w => w.isOpen && !w.isMinimized);
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: -20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 1, delay: 0.3, ease: "easeOut" }}
-      className="absolute top-[15%] left-0 right-0 text-center z-0 pointer-events-none"
+      className="absolute top-1/4 left-0 right-0 flex flex-col items-center justify-center pointer-events-none z-0"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{
+        opacity: hasOpenWindows ? 0 : 1,
+        y: hasOpenWindows ? -50 : 0,
+        scale: hasOpenWindows ? 0.9 : 1
+      }}
+      transition={{ duration: 0.6, ease: "easeInOut" }}
     >
-      <h1
-        className="text-7xl md:text-8xl font-dancing leading-none text-white/95"
-        style={{
-          textShadow: '0 4px 24px rgba(0, 0, 0, 0.5), 0 0 40px rgba(255, 255, 255, 0.1)',
-        }}
-      >
+      <h1 className="text-6xl md:text-8xl font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-white/40 drop-shadow-2xl">
         Sandino
       </h1>
-      <motion.p
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.8, duration: 0.6 }}
-        className="mt-4 text-base md:text-lg text-white/70 font-inter tracking-[0.25em] uppercase font-light"
-      >
-        Digital Artist & Content Creator
-      </motion.p>
+      <p className="mt-4 text-lg md:text-xl text-white/60 font-light tracking-[0.3em] uppercase">
+        Digital Experience
+      </p>
     </motion.div>
   );
 };

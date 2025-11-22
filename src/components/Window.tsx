@@ -1,77 +1,64 @@
-import React, { useRef } from "react";
-import { motion, AnimatePresence, useDragControls } from "framer-motion";
-import { useWindows } from "../context/WindowContext";
+import React from 'react';
+import { motion } from 'framer-motion';
+import { X, Minus, Maximize2 } from 'lucide-react';
+import { useWindows } from '../context/WindowContext';
+import { AppContents } from './AppContents'; // <--- IMPORTANTE
 
 interface WindowProps {
-    id: string;
-    title: string;
-    children: React.ReactNode;
-    zIndex: number;
-    onFocus: () => void;
+  id: string;
+  title: string;
+  zIndex: number;
 }
 
-export const Window: React.FC<WindowProps> = ({ id, title, children, zIndex, onFocus }) => {
-    const { closeWindow, minimizeWindow, maximizeWindow, windows } = useWindows();
-    const windowState = windows.find((w) => w.id === id);
-    const dragControls = useDragControls();
+export const Window: React.FC<WindowProps> = ({ id, title, zIndex }) => {
+  const { closeWindow, focusWindow, minimizeWindow } = useWindows();
 
-    if (!windowState || !windowState.isOpen) return null;
+  return (
+    <motion.div
+      drag
+      dragMomentum={false}
+      dragElastic={0.1}
+      initial={{ scale: 0.9, opacity: 0, y: 20 }}
+      animate={{ scale: 1, opacity: 1, y: 0 }}
+      exit={{ scale: 0.9, opacity: 0, filter: 'blur(10px)' }}
+      transition={{ type: "spring", damping: 25, stiffness: 300 }}
+      style={{ zIndex }}
+      onMouseDown={() => focusWindow(id)}
+      className="absolute top-20 left-4 md:left-20 w-full max-w-[90vw] md:w-[800px] h-[60vh] md:h-[500px] pointer-events-auto flex flex-col"
+    >
+      <div className="flex-1 rounded-xl overflow-hidden ios-liquid-glass flex flex-col border border-white/20 shadow-2xl">
+        
+        {/* Header */}
+        <div 
+          className="h-10 bg-white/5 border-b border-white/10 flex items-center justify-between px-4 cursor-grab active:cursor-grabbing backdrop-blur-md"
+          onPointerDownCapture={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center gap-2">
+            <div className="flex gap-1.5 group">
+              <button onClick={() => closeWindow(id)} className="w-3 h-3 rounded-full bg-[#ff5f56] hover:bg-[#ff5f56]/80 flex items-center justify-center transition-colors shadow-inner">
+                <X size={8} className="text-black/60 opacity-0 group-hover:opacity-100" strokeWidth={3} />
+              </button>
+              <button onClick={() => minimizeWindow(id)} className="w-3 h-3 rounded-full bg-[#ffbd2e] hover:bg-[#ffbd2e]/80 flex items-center justify-center transition-colors shadow-inner">
+                <Minus size={8} className="text-black/60 opacity-0 group-hover:opacity-100" strokeWidth={3} />
+              </button>
+              <button className="w-3 h-3 rounded-full bg-[#27c93f] hover:bg-[#27c93f]/80 flex items-center justify-center transition-colors shadow-inner">
+                <Maximize2 size={8} className="text-black/60 opacity-0 group-hover:opacity-100" strokeWidth={3} />
+              </button>
+            </div>
+          </div>
+          
+          <span className="text-xs font-medium text-white/70 tracking-wide pointer-events-none select-none">
+            {title}
+          </span>
+          
+          <div className="w-10" />
+        </div>
 
-    return (
-        <AnimatePresence>
-            {!windowState.isMinimized && (
-                <motion.div
-                    key={id}
-                    initial={{ scale: 0.9, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0.9, opacity: 0, transition: { duration: 0.15 } }}
-                    transition={{ type: "spring", stiffness: 260, damping: 20 }}
-                    style={{ zIndex }}
-                    className="fixed top-20 left-4 md:left-20 w-[90vw] md:w-[800px] h-[70vh] md:h-[600px] rounded-2xl ios-liquid-glass flex flex-col overflow-hidden shadow-2xl border border-white/10"
-                    onPointerDown={onFocus}
-                    drag
-                    dragListener={false}
-                    dragControls={dragControls}
-                    dragMomentum={true}
-                    dragElastic={0.2}
-                    dragConstraints={{ left: 0, top: 0, right: window.innerWidth - 100, bottom: window.innerHeight - 100 }}
-                >
-                    {/* Title Bar */}
-                    <div
-                        className="h-10 flex items-center justify-between px-4 bg-white/5 border-b border-white/10 cursor-default select-none"
-                        onPointerDown={(e) => dragControls.start(e)}
-                        onDoubleClick={() => maximizeWindow(id)}
-                    >
-                        <div className="flex items-center gap-2 group">
-                            <button
-                                onClick={(e) => { e.stopPropagation(); closeWindow(id); }}
-                                className="w-3 h-3 rounded-full bg-[#FF5F56] border border-[#E0443E] hover:brightness-110 active:brightness-90 transition-all shadow-sm"
-                            />
-                            <button
-                                onClick={(e) => { e.stopPropagation(); minimizeWindow(id); }}
-                                className="w-3 h-3 rounded-full bg-[#FFBD2E] border border-[#DEA123] hover:brightness-110 active:brightness-90 transition-all shadow-sm"
-                            />
-                            <button
-                                onClick={(e) => { e.stopPropagation(); maximizeWindow(id); }}
-                                className="w-3 h-3 rounded-full bg-[#27C93F] border border-[#1AAB29] hover:brightness-110 active:brightness-90 transition-all shadow-sm"
-                            />
-                        </div>
-
-                        <span className="text-xs font-medium text-white/70 font-sans tracking-wide pointer-events-none">
-                            {title}
-                        </span>
-
-                        <div className="w-14" />
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex-1 overflow-auto p-6 text-white/90 bg-black/20">
-                        {children}
-                    </div>
-                </motion.div>
-            )}
-        </AnimatePresence>
-    );
+        {/* Contenido Dinámico */}
+        <div className="flex-1 p-6 text-white overflow-auto custom-scrollbar">
+           <AppContents id={id} />
+        </div>
+      </div>
+    </motion.div>
+  );
 };
-
-export default Window;
