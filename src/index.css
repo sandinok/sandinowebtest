@@ -7,51 +7,34 @@
     --background: 0 0% 0%;
     --foreground: 0 0% 98%;
   }
+
   body {
     @apply bg-black text-foreground font-sans antialiased overflow-hidden;
-    /* Prevenir rebote de scroll en Mac */
     overscroll-behavior: none;
   }
 }
 
 @layer utilities {
-  /* 
-    iOS 16 LIQUID GLASS (Realista)
-    Combina backdrop-filter con saturación alta y bordes internos de luz.
-  */
+
+  /* LIQUID GLASS 2.0 */
   .ios-liquid-glass {
-    background: rgba(255, 255, 255, 0.12);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    box-shadow: 
-      inset 0 0 0 1px rgba(255, 255, 255, 0.15),
-      0 10px 40px -10px rgba(0, 0, 0, 0.5);
-    transform: translateZ(0); /* Fuerza GPU */
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(40px) saturate(200%) brightness(1.1);
+    -webkit-backdrop-filter: blur(40px) saturate(200%) brightness(1.1);
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.2),
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.3),
+      0 20px 50px -10px rgba(0, 0, 0, 0.6);
+    transform: translateZ(0);
+    border-radius: 2rem;
   }
 
-  /* Brillo especular superior */
-  .glass-shine {
-    background: linear-gradient(
-      180deg, 
-      rgba(255, 255, 255, 0.15) 0%, 
-      rgba(255, 255, 255, 0) 60%
-    );
-  }
-
-  /* Animación de carga optimizada */
-  .loading-shimmer {
-    background: linear-gradient(
-      90deg,
-      transparent 0%,
-      rgba(255, 255, 255, 0.4) 50%,
-      transparent 100%
-    );
-    background-size: 200% 100%;
-    animation: shimmer 2s infinite linear;
-  }
-
-  @keyframes shimmer {
-    0% { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
+  /* Efecto de neón para texto */
+  .neon-text {
+    text-shadow:
+      0 0 5px rgba(255, 255, 255, 0.8),
+      0 0 10px rgba(255, 255, 255, 0.5),
+      0 0 20px #ff00de,
+      0 0 40px #ff00de;
   }
 }
