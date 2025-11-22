@@ -133,7 +133,7 @@ const useWindowOrdering = (windows: any[]) => {
 
 // Main WindowManager component
 export const WindowManager = memo(() => {
-  const { windows } = useWindows();
+  const { windows, closeWindow } = useWindows();
 
   // Performance monitoring en desarrollo
   usePerformanceMonitor();
@@ -187,7 +187,7 @@ export const WindowManager = memo(() => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [orderedWindows]);
+  }, [orderedWindows, closeWindow]);
 
   // Performance optimization: solo renderizar si hay cambios significativos
   const shouldRender = useMemo(() => {
