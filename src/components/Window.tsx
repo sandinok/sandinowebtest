@@ -1,6 +1,5 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef } from "react";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
-import { X, Minus, Maximize2 } from "lucide-react";
 import { useWindows } from "../context/WindowContext";
 
 interface WindowProps {
@@ -28,10 +27,7 @@ export const Window: React.FC<WindowProps> = ({ id, title, children, zIndex, onF
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0, transition: { duration: 0.15 } }}
           transition={{ type: "spring", stiffness: 260, damping: 20 }}
-          style={{
-            zIndex,
-            filter: 'url(#liquid)'
-          }}
+          style={{ zIndex }}
           className="fixed top-20 left-4 md:left-20 w-[90vw] md:w-[800px] h-[70vh] md:h-[600px] rounded-2xl liquid-glass-animated flex flex-col overflow-hidden shadow-2xl"
           onPointerDown={onFocus}
           drag
@@ -45,7 +41,7 @@ export const Window: React.FC<WindowProps> = ({ id, title, children, zIndex, onF
           <div
             className="h-10 flex items-center justify-between px-4 bg-white/5 border-b border-white/10 cursor-default select-none"
             onPointerDown={(e) => dragControls.start(e)}
-            onDoubleClick={() => maximizeWindow(id)} // Double click to maximize
+            onDoubleClick={() => maximizeWindow(id)}
           >
             <div className="flex items-center gap-2 group">
               <button
