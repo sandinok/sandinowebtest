@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 
+// Definimos los tipos
 export interface WindowState {
   id: string;
   title: string;
@@ -16,9 +17,10 @@ interface WindowContextType {
   minimizeWindow: (id: string) => void;
 }
 
+// Creamos el contexto
 const WindowContext = createContext<WindowContextType | undefined>(undefined);
 
-// Exportación Nombrada 1
+// EXPORTAMOS el Provider (Aquí faltaba el export o estaba mal escrito)
 export const WindowProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [windows, setWindows] = useState<WindowState[]>([]);
 
@@ -65,7 +67,7 @@ export const WindowProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   );
 };
 
-// Exportación Nombrada 2
+// EXPORTAMOS el Hook (Sin importar nada de sí mismo)
 export const useWindows = () => {
   const context = useContext(WindowContext);
   if (!context) throw new Error("useWindows must be used within a WindowProvider");

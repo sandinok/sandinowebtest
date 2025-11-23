@@ -5,27 +5,31 @@ import { useSounds } from "../context/SoundContext";
 import { useWindows } from "../context/WindowContext";
 import { DockIcon } from "./DockIcon";
 
-// IMPORTANTE: export const (No default)
 export const GlassDock: React.FC = () => {
     const { playSound } = useSounds();
     const { openWindow, windows } = useWindows();
 
     const dockItems = [
-        { id: "portfolio", icon: Palette, label: "Portfolio", gradient: "linear-gradient(135deg, #3b82f6, #60a5fa)" },
-        { id: "youtube", icon: Youtube, label: "YouTube", gradient: "linear-gradient(135deg, #ef4444, #fca5a5)" },
-        { id: "animations", icon: Play, label: "Animations", gradient: "linear-gradient(135deg, #06b6d4, #67e8f9)" },
-        { id: "inspiration", icon: Lightbulb, label: "Inspiration", gradient: "linear-gradient(135deg, #eab308, #fde047)" },
-        { id: "about", icon: User, label: "About Me", gradient: "linear-gradient(135deg, #8b5cf6, #c4b5fd)" },
-        { id: "contact", icon: Mail, label: "Contact", gradient: "linear-gradient(135deg, #10b981, #6ee7b7)" },
+        { id: "portfolio", icon: Palette, label: "Portfolio", gradient: "linear-gradient(135deg, #60a5fa, #3b82f6)" },
+        { id: "youtube", icon: Youtube, label: "YouTube", gradient: "linear-gradient(135deg, #f87171, #ef4444)" },
+        { id: "animations", icon: Play, label: "Animations", gradient: "linear-gradient(135deg, #2dd4bf, #06b6d4)" },
+        { id: "inspiration", icon: Lightbulb, label: "Inspiration", gradient: "linear-gradient(135deg, #facc15, #eab308)" },
+        { id: "about", icon: User, label: "About Me", gradient: "linear-gradient(135deg, #c084fc, #9333ea)" },
+        { id: "contact", icon: Mail, label: "Contact", gradient: "linear-gradient(135deg, #4ade80, #22c55e)" },
     ];
 
     return (
-        <div className="fixed bottom-6 left-0 right-0 flex justify-center z-50 pointer-events-none">
+        <div className="fixed bottom-8 left-0 right-0 flex justify-center z-50 pointer-events-none">
             <motion.div
                 initial={{ y: 100, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
-                transition={{ type: "spring", damping: 25, stiffness: 120, delay: 0.5 }}
-                className="pointer-events-auto flex items-end gap-3 px-4 py-3.5 pb-4 rounded-[2.5rem] ios-liquid-glass border border-white/10"
+                transition={{ type: "spring", damping: 20, stiffness: 100, delay: 0.2 }}
+                className="
+                    pointer-events-auto 
+                    flex items-end gap-4 px-6 py-4 
+                    rounded-[2.5rem] 
+                    ios-real-glass
+                "
             >
                 {dockItems.map((item) => {
                     const isOpen = windows.some(w => w.id === item.id && !w.isMinimized);
@@ -35,7 +39,6 @@ export const GlassDock: React.FC = () => {
                             {...item}
                             isOpen={isOpen}
                             onClick={() => {
-                                // Usamos try-catch por seguridad si el sonido falla
                                 try { playSound("click"); } catch (e) { }
                                 openWindow(item.id, item.label);
                             }}

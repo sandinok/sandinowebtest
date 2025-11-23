@@ -3,38 +3,53 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
-    --background: 0 0% 0%;
-    --foreground: 0 0% 98%;
-  }
-
   body {
-    @apply bg-black text-foreground font-sans antialiased overflow-hidden;
-    overscroll-behavior: none;
+    @apply bg-black text-white font-sans antialiased overflow-hidden;
   }
 }
 
 @layer utilities {
 
-  /* LIQUID GLASS 2.0 */
-  .ios-liquid-glass {
-    background: rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(40px) saturate(200%) brightness(1.1);
-    -webkit-backdrop-filter: blur(40px) saturate(200%) brightness(1.1);
+  /* REAL LIQUID GLASS */
+  .ios-real-glass {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(50px) saturate(200%);
+    -webkit-backdrop-filter: blur(50px) saturate(200%);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-top: 1px solid rgba(255, 255, 255, 0.4);
     box-shadow:
-      inset 0 0 0 1px rgba(255, 255, 255, 0.2),
-      inset 0 1px 0 0 rgba(255, 255, 255, 0.3),
-      0 20px 50px -10px rgba(0, 0, 0, 0.6);
-    transform: translateZ(0);
-    border-radius: 2rem;
+      inset 0 0 20px rgba(255, 255, 255, 0.05),
+      0 20px 40px -10px rgba(0, 0, 0, 0.5);
   }
 
-  /* Efecto de neón para texto */
-  .neon-text {
-    text-shadow:
-      0 0 5px rgba(255, 255, 255, 0.8),
-      0 0 10px rgba(255, 255, 255, 0.5),
-      0 0 20px #ff00de,
-      0 0 40px #ff00de;
+  /* Animación para el fondo */
+  @keyframes blob {
+    0% {
+      transform: translate(0px, 0px) scale(1);
+    }
+
+    33% {
+      transform: translate(30px, -50px) scale(1.1);
+    }
+
+    66% {
+      transform: translate(-20px, 20px) scale(0.9);
+    }
+
+    100% {
+      transform: translate(0px, 0px) scale(1);
+    }
+  }
+
+  .animate-blob {
+    animation: blob 10s infinite;
+  }
+
+  .animation-delay-2000 {
+    animation-delay: 2s;
+  }
+
+  .animation-delay-4000 {
+    animation-delay: 4s;
   }
 }
